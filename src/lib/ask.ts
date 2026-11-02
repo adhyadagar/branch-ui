@@ -3,6 +3,8 @@
 import type { Turn } from "./types";
 import { pathTo } from "./tree";
 import { useStore, updateTurn } from "./store";
+import { streamFromAnthropic } from "./apiKey";
+import { instructionsFor } from "./prompt";
 import { ERROR_SENTINEL } from "./protocol";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -27,6 +29,24 @@ export function contextFor(path: Turn[]): Message[] {
     if (t.answer && t !== path[path.length - 1]) messages.push({ role: "assistant", content: t.answer });
   }
   return messages;
+}
+
+async function* streamFromServer(messages: Message[], isBranch: boolean, branchDepth: number, signal: AbortSignal) {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ messages, isBranch, branchDepth }),
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error((await res.text()) || `Request failed (${res.status})`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    yield decoder.decode(value, { stream: true });
+  }
 }
 
 const controllers = new Map<string, AbortController>();
@@ -60,20 +80,15 @@ export async function submitTurn(boardId: string, id: string) {
   };
 
   try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages: contextFor(path), isBranch: turn.kind === "branch", branchDepth }),
-      signal: controller.signal,
-    });
-    if (!res.ok || !res.body) throw new Error((await res.text()) || `Request failed (${res.status})`);
+    const messages = contextFor(path);
+    const isBranch = turn.kind === "branch";
+    const { apiKey } = useStore.getState();
+    const chunks = apiKey
+      ? streamFromAnthropic(apiKey, instructionsFor(isBranch, branchDepth), messages, controller.signal)
+      : streamFromServer(messages, isBranch, branchDepth, controller.signal);
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      answer += decoder.decode(value, { stream: true });
+    for await (const chunk of chunks) {
+      answer += chunk;
       const errAt = answer.indexOf(ERROR_SENTINEL);
       if (errAt !== -1) {
         const message = answer.slice(errAt + ERROR_SENTINEL.length);

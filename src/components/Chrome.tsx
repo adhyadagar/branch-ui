@@ -8,6 +8,7 @@ import { mutateActive } from "@/lib/store";
 import { threadCount } from "@/lib/tree";
 import { fit, getCamera, subscribeCamera, zoomFromCenter } from "@/lib/view";
 import { ChevronIcon, HandIcon, ListIcon, Logo, NoteIcon, NotesIcon, PointerIcon, SparkleIcon } from "./icons";
+import { KeyButton } from "./KeyDialog";
 
 function countLabel(n: number) {
   if (!n) return "Empty";
@@ -94,6 +95,7 @@ export function BoardPill({ board }: { board: Board }) {
 export function ViewPill({ board }: { board: Board }) {
   return (
     <div className="float view-pill">
+      <KeyButton />
       <div className="seg" role="group" aria-label="Layout">
         <button aria-pressed={board.mode === "threads"} onClick={() => setLayoutMode("threads")}>
           Threads
@@ -105,9 +107,9 @@ export function ViewPill({ board }: { board: Board }) {
       <button className="ghost" onClick={goToMainThread}>
         ↩ Main thread
       </button>
-      <button className="tidy" onClick={tidyUp} title="Put every card back in a clean layout">
+      <button className="tidy" onClick={tidyUp} aria-label="Tidy up" title="Put every card back in a clean layout">
         <SparkleIcon />
-        Tidy up
+        <span>Tidy up</span>
       </button>
     </div>
   );

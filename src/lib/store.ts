@@ -37,6 +37,11 @@ export type State = Persisted & {
   /** A card's notes open at this spot on screen, or just one of them. */
   notePop: { turnId: string; onlyId?: string; x: number; y: number } | null;
   toast: Toast | null;
+  /** The visitor's own key. See lib/apiKey.ts. */
+  apiKey: string | null;
+  keyOpen: boolean;
+  /** Whether this server has its own key, once we've asked. */
+  serverHasKey: boolean | null;
 };
 
 let pending: (() => void) | null = null;
@@ -116,6 +121,9 @@ export const useStore = create<State>()(
       editNoteId: null,
       notePop: null,
       toast: null,
+      apiKey: null,
+      keyOpen: false,
+      serverHasKey: null,
     }),
     {
       name: "branch-ui",

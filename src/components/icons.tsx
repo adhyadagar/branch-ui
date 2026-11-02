@@ -9,6 +9,15 @@ export function Logo() {
   );
 }
 
+export function KeyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="4.5" cy="9.5" r="2.75" />
+      <path d="M6.5 7.5 12 2M10 4l1.75 1.75M8.25 5.75 9.75 7.25" />
+    </svg>
+  );
+}
+
 export function OpenIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">

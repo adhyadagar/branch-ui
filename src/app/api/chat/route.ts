@@ -1,21 +1,16 @@
 import { streamText, type LanguageModel, type ModelMessage } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { connection } from "next/server";
+import { DEFAULT_MODEL, instructionsFor } from "@/lib/prompt";
 import { ERROR_SENTINEL } from "@/lib/protocol";
-
-const INSTRUCTIONS = `You are a thinking partner inside a branching canvas, not a linear chat.
-The user explores topics as a tree: each answer appears on its own card, follow-ups continue a thread downward, and side questions open new branches. You only see the path from the root to the current card.
-
-- Open with the answer itself: a first paragraph of one or two plain sentences, under 140 characters, with no heading or preamble before it. The card on the board shows only this paragraph, so it must carry the actual takeaway even when read alone. For a list or brainstorm, say what the best options or main directions are rather than announcing that you'll list some.
-- Then add whatever detail the question deserves, without repeating that opening. Stay on this card's scope and don't recap earlier cards.
-- Prefer short paragraphs, tight lists and small examples over long essays. Use ### headings at most.
-- When a question is a branch, treat it as a focused tangent: go deep on that one idea.
-- If the topic naturally opens further directions, end with up to 3 short follow-up questions worth branching into, as a list under "**Branch ideas**".`;
 
 function pickModel(): LanguageModel | null {
   if (process.env.ANTHROPIC_API_KEY) {
-    return anthropic(process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5");
+    return anthropic(process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL);
   }
-  if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) {
+  // Only an explicit key counts. Vercel can sign gateway calls without one, which
+  // would let anyone spend the host's money through this route, which has no login.
+  if (process.env.AI_GATEWAY_API_KEY) {
     return process.env.AI_GATEWAY_MODEL ?? "anthropic/claude-sonnet-5.5";
   }
   return null;
@@ -25,6 +20,12 @@ function isChatMessage(m: unknown): m is { role: "user" | "assistant"; content: 
   if (typeof m !== "object" || m === null) return false;
   const { role, content } = m as { role?: unknown; content?: unknown };
   return (role === "user" || role === "assistant") && typeof content === "string";
+}
+
+/** Tells the page whether this server can answer, so it knows to offer key entry. */
+export async function GET() {
+  await connection();
+  return Response.json({ hasKey: pickModel() !== null });
 }
 
 export async function POST(req: Request) {
@@ -50,9 +51,7 @@ export async function POST(req: Request) {
   let error: unknown = null;
   const result = streamText({
     model,
-    instructions:
-      INSTRUCTIONS +
-      (body?.isBranch ? `\n\nThis card is a branch (depth ${Number(body.branchDepth) || 1}).` : ""),
+    instructions: instructionsFor(body?.isBranch, body?.branchDepth),
     messages,
     // Stop button: closing the request cancels the model call, so it stops costing tokens.
     abortSignal: req.signal,
@@ -91,10 +90,7 @@ You asked:
 
 This card got **${earlier} earlier turn(s)** as context: only the path from the root to here, not sibling branches.
 
-To get real answers, add one of these to \`.env.local\` and restart \`npm run dev\`:
-
-- \`ANTHROPIC_API_KEY=...\` (direct to Anthropic)
-- \`AI_GATEWAY_API_KEY=...\` (Vercel AI Gateway, any provider)
+To get real answers, press **Add your key** at the top of the board.
 
 **Branch ideas**
 - What happens if I branch from a highlighted sentence?
