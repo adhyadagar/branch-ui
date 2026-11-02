@@ -35,7 +35,7 @@ type Props = {
 export const Card = memo(function Card(p: Props) {
   const { turn, boardId } = p;
   const [confirming, setConfirming] = useState(false);
-  const { summary, body, ideas } = useMemo(() => parseAnswer(turn.answer), [turn.answer]);
+  const { lead, body, ideas, hasMore } = useMemo(() => parseAnswer(turn.answer), [turn.answer]);
   const sized = p.height !== null;
   const full = p.expanded || sized;
   const streaming = turn.status === "streaming";
@@ -43,11 +43,11 @@ export const Card = memo(function Card(p: Props) {
 
   let text;
   if (streaming && !body) {
-    text = summary ? <p>{summary}</p> : <Thinking />;
+    text = <Thinking />;
   } else if (streaming || full) {
     text = <Markdown>{body}</Markdown>;
   } else {
-    text = <p>{summary}</p>;
+    text = <p className="lead">{lead}</p>;
   }
 
   const toggleMenu = () => {
@@ -135,7 +135,8 @@ export const Card = memo(function Card(p: Props) {
                 +{p.hiddenCount} hidden
               </button>
             ) : (
-              !sized && (
+              !sized &&
+              (hasMore || p.expanded) && (
                 <button className="right" onClick={() => toggleExpanded(turn.id)}>
                   {p.expanded ? "Less" : ideas.length ? `More · ${ideas.length} ideas` : "More"}
                 </button>

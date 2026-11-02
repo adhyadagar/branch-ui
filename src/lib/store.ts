@@ -111,16 +111,23 @@ export const useStore = create<State>()(
     }),
     {
       name: "branch-ui",
-      version: 2,
+      version: 3,
       storage: debouncedStorage,
       partialize: (s): Persisted => ({ boards: s.boards, activeBoardId: s.activeBoardId, tipsHidden: s.tipsHidden }),
       skipHydration: true,
       migrate: (persisted, version) => {
         const p = persisted as Persisted;
-        if (version >= 2) return p;
         const boards: Persisted["boards"] = {};
-        for (const [id, b] of Object.entries(p.boards ?? {})) boards[id] = migrateBoardV1(b as unknown as Record<string, unknown>);
-        return { boards, activeBoardId: p.activeBoardId ?? null, tipsHidden: false };
+        for (const [id, b] of Object.entries(p.boards ?? {})) {
+          boards[id] = version < 2 ? migrateBoardV1(b as unknown as Record<string, unknown>) : b;
+          // v2 answers began with a <summary> tag; cards now show the answer's first paragraph.
+          if (version < 3) {
+            const turns = { ...boards[id].turns };
+            for (const t in turns) turns[t] = { ...turns[t], answer: turns[t].answer.replace(/^\s*<summary>[\s\S]*?<\/summary>\s*/, "") };
+            boards[id] = { ...boards[id], turns };
+          }
+        }
+        return { boards, activeBoardId: p.activeBoardId ?? null, tipsHidden: p.tipsHidden ?? false };
       },
       onRehydrateStorage: () => (state) => {
         // Streams don't survive a reload; settle anything that was mid-answer.

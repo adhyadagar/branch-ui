@@ -8,7 +8,7 @@ Chat apps put every question in one line, so a side question buries whatever you
 
 ## What it does
 
-- **Every question is a card.** A card shows the question and a short summary. **More** expands the full answer in place.
+- **Every question is a card.** A card shows the question and the opening of the answer, which the model writes to carry the takeaway. **More** expands the rest in place.
 - **Follow up or branch.** A follow-up continues the thread. A branch opens a side question without disturbing it.
 - **Highlight any passage** in an answer to branch on just that passage.
 - **Branch ideas.** The model suggests up to 3 directions after an answer, and one click explores any of them.
@@ -80,7 +80,7 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | `src/lib/view.ts` | Camera and card positions, kept outside React so panning stays smooth |
 | `src/lib/actions.ts` | Everything the UI can do: asking, drag, tidy up, boards |
 | `src/lib/ask.ts` | Builds a card's context from its path and streams the answer into it |
-| `src/lib/answer.ts` | Splits model output into summary, body and branch ideas |
+| `src/lib/answer.ts` | Splits model output into the opening a card shows, the full answer and branch ideas |
 | `src/lib/store.ts` | Boards and UI state, saved to localStorage, plus migrations for older boards |
 | `src/lib/sample.ts` | The example board |
 | `src/app/api/chat/route.ts` | Model call (AI SDK `streamText`) and demo mode |

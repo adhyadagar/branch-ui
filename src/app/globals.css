@@ -187,6 +187,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .quote { margin-bottom: 8px; padding: 1px 0 1px 9px; border-left: 2px solid var(--c); font-size: 12.5px; font-style: italic; color: var(--muted); line-height: 1.45; }
 .q { font-size: 15px; font-weight: 600; line-height: 1.32; letter-spacing: -0.005em; text-wrap: balance; }
 .txt { margin-top: 6px; font-size: 13.5px; line-height: 1.55; user-select: text; -webkit-user-select: text; cursor: text; }
+.txt .lead { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .txt.live { max-height: 112px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
 .txt ::selection, .m-ai ::selection, .m-user ::selection { background: color-mix(in srgb, var(--c, var(--blue)) 30%, transparent); }
 .txt p, .txt ul, .txt ol, .txt pre, .txt table, .txt blockquote, .m-ai p, .m-ai ul, .m-ai ol, .m-ai pre, .m-ai table, .m-ai blockquote { margin: 0 0 0.6em; }

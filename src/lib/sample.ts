@@ -3,9 +3,9 @@ import type { Board, Turn, TurnKind } from "./types";
 
 /** The board a first-time visitor sees, so the idea is obvious before they type anything. */
 
-function answer(summary: string, body: string, ideas: string[] = []): string {
+function answer(lead: string, rest: string, ideas: string[] = []): string {
   const list = ideas.length ? `\n\n**Branch ideas**\n${ideas.map((q) => `- ${q}`).join("\n")}` : "";
-  return `<summary>${summary}</summary>\n\n${body}${list}`;
+  return `${lead}\n\n${rest}${list}`;
 }
 
 const ROOT = answer(
@@ -25,25 +25,25 @@ Nothing is programmed in by hand. Whatever the network ends up knowing comes fro
 
 const LOSS = answer(
   'It turns "how wrong was that?" into one number for training to shrink. It is the only signal the network gets.',
-  `A loss function turns "how wrong was that prediction?" into a single number. Training tries to make that number small.
+  `Two common ones:
 
 - **Mean squared error** (for quantities): the average of (prediction − target)². Predicting 7 when the answer is 10 costs 9.
 - **Cross-entropy** (for categories): punishes confident wrong answers hard. Saying 99% *cat* for a dog costs far more than saying 55% *cat*.
 
-The loss is the only signal the network gets. If it measures the wrong thing, the network gets very good at the wrong thing.`,
+If it measures the wrong thing, the network gets very good at the wrong thing.`,
   ["When would I pick cross-entropy over MSE?", "Can a loss function be custom?"],
 );
 
 const CROSS_ENTROPY = answer(
   "Cross-entropy for probabilities over classes, MSE for quantities. Cross-entropy corrects confident mistakes hardest.",
-  `Use **cross-entropy when the output is a probability over classes** (spam or not, digits 0–9). Use **MSE when the output is a quantity** (a price, a temperature).
+  `So spam filters and digit recognizers use cross-entropy, while price and temperature predictors use MSE.
 
 Cross-entropy gives a strong correction when the model is confidently wrong, so it learns fastest from its worst mistakes. MSE on probabilities flattens out near 0 and 1, so a confident, badly wrong model barely gets corrected.`,
 );
 
 const STEP = answer(
   "One neuron with w = 0.5: the loss is 4.0, the gradient is −8, and one update moves w to 0.9. The loss falls to 1.44.",
-  `Take one neuron with weight **w = 0.5**, input **x = 2**, and target **y = 3**.
+  `Here's the working, with input **x = 2** and target **y = 3**.
 
 1. **Forward**: prediction = w · x = 1.0
 2. **Loss** (squared error): (1.0 − 3)² = **4.0**
@@ -56,14 +56,12 @@ New prediction: 0.9 · 2 = 1.8. The loss drops from 4.0 to 1.44. Repeat, and w s
 
 const CHAIN = answer(
   "Think of gears: w turns the prediction, the prediction turns the loss. Multiply the two ratios: −4 × 2 = −8.",
-  `Think of gears. Turning **w** turns the **prediction** gear, and the prediction turns the **loss** gear.
-
-To know how much the loss moves when you nudge w, multiply the two gear ratios:
+  `To know how much the loss moves when you nudge w, you need both gear ratios:
 
 - how much the loss moves per unit of prediction: 2 · (1.0 − 3) = −4
 - how much the prediction moves per unit of w: x = 2
 
-−4 × 2 = −8. Backpropagation is this same multiplication carried backwards through every layer, one gear at a time.`,
+Backpropagation is this same multiplication carried backwards through every layer, one gear at a time.`,
 );
 
 const STOP = answer(
