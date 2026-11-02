@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 // A visitor's API key lives in this page, so limit where the page can send anything.
-const CSP = "connect-src 'self' https://api.anthropic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const PROVIDER_HOSTS = ["https://api.anthropic.com", "https://api.openai.com", "https://generativelanguage.googleapis.com", "https://openrouter.ai"];
+const CSP = `connect-src 'self' ${PROVIDER_HOSTS.join(" ")}; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
 
 const nextConfig: NextConfig = {
   async headers() {

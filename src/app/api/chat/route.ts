@@ -82,15 +82,15 @@ function demoResponse(messages: ModelMessage[]) {
   const last = messages[messages.length - 1];
   const q = typeof last?.content === "string" ? last.content : "";
   const earlier = messages.filter((m) => m.role === "user").length - 1;
-  const text = `**Demo mode:** this is a placeholder. A real model would see ${earlier === 1 ? "1 earlier card" : `${earlier} earlier cards`} here.
+  const text = `**Placeholder answer.** Branch isn't connected to an AI provider, so this isn't a real response.
 
 You asked:
 
 > ${q.split("\n").filter(Boolean).slice(-1)[0] ?? ""}
 
-This card got **${earlier} earlier turn(s)** as context: only the path from the root to here, not sibling branches.
+A real model would see ${earlier === 1 ? "1 earlier card" : `${earlier} earlier cards`} on this path, and nothing from other branches.
 
-To get real answers, press **Add your key** at the top of the board.
+To get real answers, select **Connect AI** at the top of the board.
 
 **Branch ideas**
 - What happens if I branch from a highlighted sentence?

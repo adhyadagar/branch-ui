@@ -141,7 +141,16 @@ Open <http://localhost:3000>. You start on an example board with real answers al
 
 ## Use a real model
 
-**The quick way:** press **Add your key** at the top of the board and paste an [Anthropic API key](https://platform.claude.com/settings/keys). It's saved in your browser and sent only to Anthropic, which bills your account for what you use. Press **Your key** to replace or remove it.
+**The quick way:** select **Connect AI** at the top of the board, choose a provider and paste your API key. You can then pick any model your key has access to.
+
+| Provider | Get a key |
+| --- | --- |
+| Anthropic | [platform.claude.com](https://platform.claude.com/settings/keys) |
+| OpenAI | [platform.openai.com](https://platform.openai.com/api-keys) |
+| Google | [aistudio.google.com](https://aistudio.google.com/apikey) |
+| OpenRouter, for models from many other companies | [openrouter.ai](https://openrouter.ai/keys) |
+
+Your key is stored only in your browser and sent directly to that provider, which bills you for what you use.
 
 **On your own machine,** you can keep the key in a settings file instead:
 
@@ -156,11 +165,11 @@ Add one of these keys to `.env.local`, then restart `npm run dev`:
 | `ANTHROPIC_API_KEY` | Calling Anthropic directly | `claude-sonnet-5-5` (`ANTHROPIC_MODEL`) |
 | `AI_GATEWAY_API_KEY` | Any provider through [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) | `anthropic/claude-sonnet-5.5` (`AI_GATEWAY_MODEL`) |
 
-If both are set, `ANTHROPIC_API_KEY` is used. A key added in the browser takes priority over both.
+If both are set, `ANTHROPIC_API_KEY` is used. A provider connected in the browser takes priority over both.
 
 ## Security and privacy
 
-- A key you add in the browser is saved in that browser and sent only to Anthropic. It never reaches Branch's server. Anyone who can use your browser profile could read it, so only add it on a computer you trust.
+- A key you add in the browser is stored only in that browser and sent directly to the provider you chose. It never reaches Branch's server. Anyone who can use your browser profile could read it, so avoid adding it on a shared computer.
 - A key in `.env.local` stays on the server, and that file is ignored by git.
 - Boards are saved in your browser. What you ask is sent to the model provider, along with the earlier cards on that branch.
 - Your highlights and notes stay in your browser and aren't sent to the model. A note on the board is only sent if you press **Ask →** on it.
@@ -190,7 +199,8 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | `src/lib/view.ts` | Camera and card positions, kept outside React so panning stays smooth |
 | `src/lib/actions.ts` | Everything the UI can do: asking, drag, tidy up, boards, notes |
 | `src/lib/ask.ts` | Builds a card's context from its path and streams the answer into it |
-| `src/lib/apiKey.ts` | A visitor's own key: saving it, checking it and calling Anthropic from the browser |
+| `src/lib/providers.ts` | The AI providers you can connect, and how each one checks a key and lists its models |
+| `src/lib/connection.ts` | A visitor's own connection: saving it, verifying it and streaming answers from the browser |
 | `src/lib/prompt.ts` | The model's instructions and default model |
 | `src/lib/answer.ts` | Splits model output into the opening a card shows, the full answer and branch ideas |
 | `src/lib/annotations.ts` | Finds noted passages in an answer and paints their highlights and dots |
@@ -205,7 +215,7 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | `src/components/ThreadsPanel.tsx` | The list of a board's threads, its highlights and notes, and the search over them |
 | `src/components/Notes.tsx` | Writing and reading the notes on a card or passage |
 | `src/components/Guide.tsx` | The guided first round on the example board |
-| `src/components/KeyDialog.tsx` | Adding, replacing and removing your key |
+| `src/components/ConnectDialog.tsx` | Connecting a provider, choosing a model and disconnecting |
 
 ## Contributing
 

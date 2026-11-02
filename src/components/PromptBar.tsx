@@ -6,6 +6,7 @@ import { ask, beginAsk, clearQuote, endAsk, select, setAskMode } from "@/lib/act
 import { chainThrough, followupOf, shortLabel } from "@/lib/tree";
 import { CARD_W, SLOT_ID } from "@/lib/layout";
 import { isExampleBoard } from "@/lib/sample";
+import { ConnectNote } from "./ConnectDialog";
 import { getCamera, prefersReducedMotion, relayout, scene, setFocusBar, SLOT_ZOOM, subscribeCamera, subscribePlaced } from "@/lib/view";
 
 const QUICK = ["Explain this more simply", "Give me a concrete example", "Why is this true?"];
@@ -217,6 +218,7 @@ export function PromptBar() {
         </div>
       )}
       <div className="comp-box">
+        {!asking && <ConnectNote />}
         <div className="comp-ctx">{context}</div>
         <form
           className="comp-form"

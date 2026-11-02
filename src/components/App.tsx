@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useActiveBoard, useStore } from "@/lib/store";
 import { ensureActiveBoard } from "@/lib/actions";
-import { loadApiKey } from "@/lib/apiKey";
+import { introduceOnce, loadConnection } from "@/lib/connection";
 import { Canvas } from "./Canvas";
 import { ChatView } from "./ChatView";
-import { KeyDialog } from "./KeyDialog";
+import { ConnectDialog } from "./ConnectDialog";
 import { NoteLayer } from "./Notes";
 
 export function App() {
@@ -19,10 +19,13 @@ export function App() {
       ensureActiveBoard();
       setHydrated(true);
     });
-    loadApiKey();
+    loadConnection();
     fetch("/api/chat")
       .then((res) => res.json())
-      .then(({ hasKey }) => useStore.setState({ serverHasKey: Boolean(hasKey) }))
+      .then(({ hasKey }) => {
+        useStore.setState({ serverHasKey: Boolean(hasKey) });
+        introduceOnce();
+      })
       .catch(() => {});
   }, []);
 
@@ -33,7 +36,7 @@ export function App() {
       <Canvas board={board} />
       <ChatView board={board} />
       <NoteLayer board={board} />
-      <KeyDialog />
+      <ConnectDialog />
     </>
   );
 }

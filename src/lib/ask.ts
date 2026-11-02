@@ -3,7 +3,7 @@
 import type { Turn } from "./types";
 import { pathTo } from "./tree";
 import { useStore, updateTurn } from "./store";
-import { streamFromAnthropic } from "./apiKey";
+import { streamFromProvider } from "./connection";
 import { instructionsFor } from "./prompt";
 import { ERROR_SENTINEL } from "./protocol";
 
@@ -82,9 +82,9 @@ export async function submitTurn(boardId: string, id: string) {
   try {
     const messages = contextFor(path);
     const isBranch = turn.kind === "branch";
-    const { apiKey } = useStore.getState();
-    const chunks = apiKey
-      ? streamFromAnthropic(apiKey, instructionsFor(isBranch, branchDepth), messages, controller.signal)
+    const { connection } = useStore.getState();
+    const chunks = connection
+      ? streamFromProvider(connection, instructionsFor(isBranch, branchDepth), messages, controller.signal)
       : streamFromServer(messages, isBranch, branchDepth, controller.signal);
 
     for await (const chunk of chunks) {

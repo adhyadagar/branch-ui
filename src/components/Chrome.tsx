@@ -8,7 +8,7 @@ import { mutateActive } from "@/lib/store";
 import { threadCount } from "@/lib/tree";
 import { fit, getCamera, subscribeCamera, zoomFromCenter } from "@/lib/view";
 import { ChevronIcon, HandIcon, ListIcon, Logo, NoteIcon, NotesIcon, PointerIcon, SparkleIcon } from "./icons";
-import { KeyButton } from "./KeyDialog";
+import { ConnectButton } from "./ConnectDialog";
 
 function countLabel(n: number) {
   if (!n) return "Empty";
@@ -95,7 +95,7 @@ export function BoardPill({ board }: { board: Board }) {
 export function ViewPill({ board }: { board: Board }) {
   return (
     <div className="float view-pill">
-      <KeyButton />
+      <ConnectButton />
       <div className="seg" role="group" aria-label="Layout">
         <button aria-pressed={board.mode === "threads"} onClick={() => setLayoutMode("threads")}>
           Threads

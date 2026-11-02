@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
+import type { Connection } from "./connection";
 import type { Board, Turn } from "./types";
 
 export type Tool = "select" | "hand";
@@ -37,9 +38,11 @@ export type State = Persisted & {
   /** A card's notes open at this spot on screen, or just one of them. */
   notePop: { turnId: string; onlyId?: string; x: number; y: number } | null;
   toast: Toast | null;
-  /** The visitor's own key. See lib/apiKey.ts. */
-  apiKey: string | null;
-  keyOpen: boolean;
+  /** The visitor's own provider and key. See lib/connection.ts. */
+  connection: Connection | null;
+  connectOpen: boolean;
+  /** The dialog is explaining itself to a first-time visitor. */
+  connectIntro: boolean;
   /** Whether this server has its own key, once we've asked. */
   serverHasKey: boolean | null;
 };
@@ -121,8 +124,9 @@ export const useStore = create<State>()(
       editNoteId: null,
       notePop: null,
       toast: null,
-      apiKey: null,
-      keyOpen: false,
+      connection: null,
+      connectOpen: false,
+      connectIntro: false,
       serverHasKey: null,
     }),
     {

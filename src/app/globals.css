@@ -113,17 +113,27 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .tidy { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: var(--on-ink); font-weight: 600; font-size: 13px; padding: 7px 13px; border-radius: 9px; white-space: nowrap; }
 .tidy:hover { opacity: 0.86; }
 .tidy:disabled { opacity: 0.45; cursor: default; }
-.key-btn { display: inline-flex; align-items: center; gap: 6px; }
-.key-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px; background: oklch(0% 0 0 / 0.28); }
-.key-dialog { width: min(420px, 100%); background: var(--surface); color: var(--ink); border-radius: 16px; box-shadow: var(--lift-shadow); padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-.key-dialog h2 { font-size: 16px; font-weight: 600; }
-.key-dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
-.key-dialog a { font-size: 13.5px; text-decoration: underline; text-underline-offset: 2px; width: fit-content; }
-.key-dialog input { width: 100%; margin-top: 4px; padding: 9px 11px; border-radius: 9px; background: var(--surface-2); color: var(--ink); font-size: 14px; outline: none; user-select: text; -webkit-user-select: text; }
-.key-dialog input:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 45%, transparent); outline-offset: -1px; }
-.key-dialog .key-error { color: oklch(50% 0.17 25); }
-.key-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; justify-content: flex-end; flex-wrap: wrap; }
-.key-remove { margin-right: auto; }
+.connect-btn { display: inline-flex; align-items: center; gap: 6px; }
+.connect-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: oklch(0% 0 0 / 0.28); }
+.connect-dialog { width: min(460px, 100%); background: var(--surface); color: var(--ink); border-radius: 16px; box-shadow: var(--lift-shadow); padding: 22px; }
+.connect-dialog form, .connect-dialog > div { display: flex; flex-direction: column; gap: 14px; }
+.connect-dialog h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: -6px; }
+.connect-dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.connect-field { display: flex; flex-direction: column; gap: 6px; }
+.connect-label { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; font-weight: 600; }
+.connect-label a { font-weight: 400; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.connect-label a:hover { color: var(--ink); }
+.connect-providers { display: flex; flex-wrap: wrap; gap: 6px; }
+.connect-providers button { padding: 6px 11px; border-radius: 9px; font-size: 13px; background: var(--surface-2); color: var(--ink); }
+.connect-providers button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); font-weight: 500; }
+.connect-dialog input, .connect-dialog select { width: 100%; padding: 9px 11px; border-radius: 9px; background: var(--surface-2); color: var(--ink); font-size: 14px; outline: none; user-select: text; -webkit-user-select: text; }
+.connect-dialog input:focus-visible, .connect-dialog select:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 45%, transparent); outline-offset: -1px; }
+.connect-dialog .connect-error { color: oklch(50% 0.17 25); margin-top: -6px; }
+.connect-dialog .connect-fine { font-size: 12.5px; }
+.connect-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.connect-disconnect { margin-right: auto; }
+.connect-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 10%, transparent); font-size: 12.5px; color: var(--muted); }
+.connect-note button { flex: none; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 .rail { left: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 4px; padding: 6px; }
 .rail button { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; }
 .rail button:hover { background: var(--surface-2); }
@@ -385,7 +395,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
   .guide { top: 112px; left: 12px; right: 12px; width: auto; }
   .g-step.done, .g-step.next { display: none; }
   .view-pill { top: 60px; left: 12px; right: auto; }
-  .key-btn span, .tidy span { display: none; }
+  .connect-btn span, .tidy span { display: none; }
   .seg button { padding: 5px 8px; font-size: 12px; }
   .rail { top: auto; bottom: 170px; transform: none; }
   .rail button { width: 36px; height: 36px; }
