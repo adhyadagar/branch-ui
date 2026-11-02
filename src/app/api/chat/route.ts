@@ -20,12 +20,28 @@ function pickModel(): LanguageModel | null {
   return null;
 }
 
+function isChatMessage(m: unknown): m is { role: "user" | "assistant"; content: string } {
+  if (typeof m !== "object" || m === null) return false;
+  const { role, content } = m as { role?: unknown; content?: unknown };
+  return (role === "user" || role === "assistant") && typeof content === "string";
+}
+
 export async function POST(req: Request) {
-  const { messages, isBranch, branchDepth } = (await req.json()) as {
-    messages: ModelMessage[];
+  // Other sites can't send JSON here without a CORS preflight, which this route
+  // never approves. That stops a page you visit from spending your API key.
+  if (!req.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+    return new Response("Expected application/json.", { status: 415 });
+  }
+
+  const body = (await req.json().catch(() => null)) as {
+    messages?: unknown;
     isBranch?: boolean;
     branchDepth?: number;
-  };
+  } | null;
+  const messages = body?.messages;
+  if (!Array.isArray(messages) || messages.length === 0 || !messages.every(isChatMessage)) {
+    return new Response("Expected messages: { role, content }[].", { status: 400 });
+  }
 
   const model = pickModel();
   if (!model) return demoResponse(messages);
@@ -35,8 +51,10 @@ export async function POST(req: Request) {
     model,
     instructions:
       INSTRUCTIONS +
-      (isBranch ? `\n\nThis card is a branch (depth ${branchDepth ?? 1}).` : ""),
+      (body?.isBranch ? `\n\nThis card is a branch (depth ${Number(body.branchDepth) || 1}).` : ""),
     messages,
+    // Stop button: closing the request cancels the model call, so it stops costing tokens.
+    abortSignal: req.signal,
     onError: ({ error: e }) => {
       error = e;
       console.error("[chat] stream error", e);
