@@ -5,6 +5,7 @@ import { getActiveBoard, useActiveBoard, useStore } from "@/lib/store";
 import { ask, beginAsk, clearQuote, endAsk, select, setAskMode } from "@/lib/actions";
 import { chainThrough, followupOf, shortLabel } from "@/lib/tree";
 import { CARD_W, SLOT_ID } from "@/lib/layout";
+import { isExampleBoard } from "@/lib/sample";
 import { getCamera, prefersReducedMotion, relayout, scene, setFocusBar, SLOT_ZOOM, subscribeCamera, subscribePlaced } from "@/lib/view";
 
 const QUICK = ["Explain this more simply", "Give me a concrete example", "Why is this true?"];
@@ -194,7 +195,7 @@ export function PromptBar() {
   } else {
     context = (
       <span className="from">
-        Nothing selected, so this starts a <strong>new topic</strong> on the board.
+        Nothing selected, so this starts a {board && isExampleBoard(board) ? <strong>new board</strong> : <><strong>new topic</strong> on the board</>}.
       </span>
     );
     placeholder = "What do you want to explore?";

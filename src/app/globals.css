@@ -14,6 +14,9 @@
   --edge: oklch(80% 0 0);
   --blue: #3b82f6;
   --sticky-ink: oklch(20% 0 0);
+  --note-mark: color-mix(in srgb, #fbbf24 40%, transparent);
+  --note-dot: #e8a020;
+  --note-paper: #f6e3b4;
   --danger: oklch(57.7% 0.245 27.325);
   --danger-bg: oklch(95% 0.03 27);
   --float-shadow: 0 0 0 1px oklch(0% 0 0 / 0.05), 0 4px 16px -4px oklch(0% 0 0 / 0.12);
@@ -86,19 +89,22 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .board-name:hover, .board-name:focus { background: var(--surface-2); }
 .ghost { padding: 6px 10px; border-radius: 9px; font-size: 13px; font-weight: 500; white-space: nowrap; }
 .ghost:hover { background: var(--surface-2); }
+.boards-anchor { position: relative; }
+.boards-btn { display: inline-flex; align-items: center; gap: 4px; }
+.boards-btn svg { transition: transform 0.15s; }
+.boards-btn[aria-expanded="true"] { background: var(--surface-2); }
+.boards-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
 .new-board { margin-left: -8px; width: 30px; padding: 6px 0; font-size: 16px; line-height: 18px; }
-.board-menu { position: absolute; top: calc(100% + 6px); left: 0; width: 340px; background: var(--surface); border-radius: 14px; box-shadow: var(--lift-shadow); padding: 6px; }
+.board-menu { position: absolute; top: calc(100% + 14px); left: 0; width: 340px; background: var(--surface); border-radius: 14px; box-shadow: var(--lift-shadow); padding: 6px; }
 .board-list { max-height: 320px; overflow-y: auto; }
 .board-row { display: flex; align-items: center; gap: 6px; border-radius: 8px; padding-right: 4px; }
 .board-row:hover, .board-row.active { background: var(--surface-2); }
 .board-open { flex: 1; min-width: 0; text-align: left; padding: 7px 10px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-row .count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.board-del { width: 24px; height: 24px; border-radius: 6px; font-size: 12px; color: var(--muted); }
+.board-del { width: 24px; height: 24px; border-radius: 6px; font-size: 12px; color: var(--muted); opacity: 0; }
+.board-row:hover .board-del, .board-del:focus-visible { opacity: 1; }
 .board-del:hover { background: var(--line); color: var(--ink); }
-.board-row .danger { color: var(--danger); font-size: 12.5px; font-weight: 500; padding: 3px 6px; }
-.board-actions { display: flex; gap: 2px; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
-.board-actions button { padding: 7px 10px; border-radius: 8px; font-size: 13px; font-weight: 500; }
-.board-actions button:hover { background: var(--surface-2); }
+@media (hover: none) { .board-del { opacity: 1; } }
 
 .view-pill { top: 12px; right: 12px; display: flex; align-items: center; gap: 4px; padding: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; }
@@ -118,8 +124,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 
 .threads-panel { left: 72px; top: 72px; bottom: 112px; width: 320px; display: flex; flex-direction: column; overflow: hidden; }
 .t-head { display: flex; align-items: center; gap: 6px; padding: 8px 8px 6px 14px; }
-.t-head h2 { font-size: 13px; font-weight: 600; }
-.t-head .count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.t-head .count { font-size: 12px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .t-head .x { margin-left: auto; color: var(--muted); padding: 3px 6px; border-radius: 6px; }
 .t-head .x:hover { background: var(--surface-2); color: var(--ink); }
 .t-search { display: flex; align-items: center; gap: 7px; margin: 0 8px 6px; padding: 0 10px; border-radius: 9px; background: var(--surface-2); color: var(--muted); cursor: text; }
@@ -155,12 +160,69 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .r-q { font-size: 13px; font-weight: 500; line-height: 1.3; }
 .r-x { font-size: 12.5px; line-height: 1.4; color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .r-hit mark { color: var(--ink); background: color-mix(in srgb, #facc15 45%, transparent); border-radius: 2px; }
+.r-quote { font-size: 12.5px; line-height: 1.4; color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.r-quote mark { color: var(--ink); background: var(--note-mark); border-radius: 2px; }
+.r-hit .t-meta { margin-top: 1px; }
+.r-label { padding: 4px 8px; font-size: 12px; color: var(--muted); }
+.r-paper { display: block; width: calc(100% - 24px); margin: 0 0 5px 24px; padding: 7px 10px; border-radius: 8px; background: var(--n); color: var(--sticky-ink); text-align: left; font-size: 13px; font-weight: 500; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: var(--card-shadow); }
+.r-paper:hover { box-shadow: var(--lift-shadow); }
+.r-paper mark { color: inherit; background: color-mix(in srgb, #facc15 60%, transparent); border-radius: 2px; }
+.r-note { font-size: 13px; font-weight: 500; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+.r-note mark { color: var(--ink); background: color-mix(in srgb, #facc15 45%, transparent); border-radius: 2px; }
+::highlight(branch-note) { color: var(--ink); background-color: var(--note-mark); }
 ::highlight(branch-search) { color: var(--ink); background-color: color-mix(in srgb, #facc15 45%, transparent); }
+
+/* ---------- Notes ---------- */
+/* Every note is the same paper, whether it's loose on the board or stuck to a card. */
+.note-pop { position: fixed; z-index: 55; left: 0; top: 0; width: min(320px, calc(100vw - 16px)); background: var(--note-paper); color: var(--sticky-ink); border-radius: 14px; box-shadow: var(--lift-shadow); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.note-tab { position: absolute; z-index: 1; top: -11px; right: 16px; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 4px 4px 9px 4px; background: var(--note-paper); color: var(--sticky-ink); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; box-shadow: var(--card-shadow); transform: rotate(3deg); transition: transform 0.15s; }
+.note-tab:hover { transform: rotate(0deg) translateY(-2px); }
+.m-notes { display: flex; align-items: center; gap: 8px; }
+.m-notes .note-tab { position: static; }
+/* Sits at the start of a highlight. The extra ::before gives it a bigger target than it looks. */
+.txt, .m-ai { position: relative; }
+.note-dot { position: absolute; width: 13px; height: 13px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--note-dot); box-shadow: 0 0 0 2px var(--surface), 0 1px 3px oklch(0% 0 0 / 0.3); display: grid; place-items: center; }
+.note-dot::before { content: ""; position: absolute; inset: -6px; }
+.note-dot::after { content: ""; width: 5px; height: 5px; border-radius: 1px; background: var(--surface); }
+.note-dot:hover { transform: translate(-50%, -50%) scale(1.15); }
+.np-list { display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
+.np-note { display: flex; flex-direction: column; gap: 6px; }
+.np-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: color-mix(in srgb, var(--sticky-ink) 62%, transparent); }
+.np-head b { font-weight: 600; color: var(--sticky-ink); }
+.np-head .x { margin-left: auto; width: 22px; height: 22px; border-radius: 6px; font-size: 11px; color: inherit; }
+.np-head .x:hover { background: color-mix(in srgb, var(--sticky-ink) 10%, transparent); color: var(--sticky-ink); }
+.np-quote { padding-left: 9px; border-left: 3px solid var(--note-dot); font-size: 13px; line-height: 1.4; }
+.note-pop textarea { display: block; width: 100%; min-height: 72px; max-height: 40vh; field-sizing: content; resize: none; border: 0; border-radius: 8px; padding: 8px 10px; background: oklch(100% 0 0 / 0.38); color: var(--sticky-ink); outline: none; font-size: 14px; line-height: 1.45; user-select: text; -webkit-user-select: text; }
+.note-pop textarea:focus-visible { outline: 2px solid color-mix(in srgb, var(--sticky-ink) 45%, transparent); outline-offset: -1px; }
+.note-pop textarea::placeholder { color: color-mix(in srgb, var(--sticky-ink) 62%, transparent); }
+.np-foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: color-mix(in srgb, var(--sticky-ink) 62%, transparent); }
+.np-foot button { font-size: 12.5px; font-weight: 500; color: var(--sticky-ink); padding: 5px 8px; border-radius: 7px; white-space: nowrap; }
+.np-foot button:hover { background: color-mix(in srgb, var(--sticky-ink) 10%, transparent); }
+.np-foot .np-done { margin-left: auto; font-weight: 600; background: var(--sticky-ink); color: var(--note-paper); padding: 5px 11px; }
+.np-foot .np-done:hover { background: var(--sticky-ink); opacity: 0.86; }
 
 .empty { left: 50%; top: 42%; transform: translate(-50%, -50%); width: min(460px, calc(100% - 32px)); padding: 24px; box-shadow: var(--lift-shadow); }
 .empty h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; text-wrap: balance; }
 .empty p { margin-top: 6px; color: var(--muted); font-size: 14px; }
 .empty .chips { margin: 14px 0 0; }
+.empty-example { margin-top: 12px; font-size: 12.5px; color: var(--muted); text-decoration: underline; }
+.empty-example:hover { color: var(--ink); }
+
+.guide { top: 72px; right: 12px; width: 280px; padding: 12px 14px 14px; }
+.g-head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.g-head h2 { font-size: 13px; font-weight: 600; color: var(--ink); }
+.g-skip { margin-left: auto; padding: 2px 6px; border-radius: 6px; font-size: 12px; color: var(--muted); }
+.g-skip:hover { background: var(--surface-2); color: var(--ink); }
+.g-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.g-step { display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; align-items: center; }
+.g-step b { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+.g-num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; background: var(--ink); color: var(--on-ink); }
+.g-step.done .g-num, .g-step.next .g-num { background: var(--surface-2); color: var(--muted); }
+.g-step.done b, .g-step.next b { font-weight: 400; color: var(--muted); }
+.g-step .g-text { grid-column: 2; margin-top: 2px; }
+.g-text { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.g-done { font-size: 15px; font-weight: 600; letter-spacing: -0.005em; margin-bottom: 4px; }
+.g-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 12px; }
 
 /* ---------- Prompt bar ---------- */
 .composer { position: fixed; z-index: 40; left: 0; top: 0; display: flex; flex-direction: column; gap: 8px; transition: opacity 0.25s; }
@@ -199,7 +261,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .card.slot { background: transparent; box-shadow: none; outline: 1.5px dashed var(--edge); pointer-events: none; }
 
 .pill {
-  position: absolute; left: 2px; bottom: calc(100% + 4px); display: inline-flex; align-items: center; gap: 6px; height: 26px;
+  position: absolute; z-index: 2; left: 2px; bottom: calc(100% + 4px); display: inline-flex; align-items: center; gap: 6px; height: 26px;
   font-size: 12.5px; font-weight: 500; white-space: nowrap;
   transform: scale(var(--pinv, 1)); transform-origin: left bottom;
 }
@@ -248,7 +310,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .chip:hover { background: color-mix(in srgb, var(--c, var(--blue)) 14%, var(--surface)); }
 .chip .arr { color: var(--c, var(--blue)); font-weight: 700; }
 .chip.explored { color: var(--muted); }
-.c-foot { display: flex; align-items: center; gap: 2px; padding: 4px 6px 6px; }
+.c-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px 6px 6px; }
 .c-foot button { padding: 4px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); white-space: nowrap; }
 .c-foot button:hover { background: var(--surface-2); color: var(--ink); }
 .c-foot .right { margin-left: auto; }
@@ -263,7 +325,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .world.far .card:not(.slot) .c-body, .world.far .card .c-foot, .world.far .grip { visibility: hidden; }
 .world.far .card .far-title { display: flex; }
 
-/* ---------- Notes & on-board tips ---------- */
+/* ---------- Notes ---------- */
 .note { position: absolute; left: 0; top: 0; background: var(--n); color: var(--sticky-ink); border-radius: 14px; box-shadow: var(--card-shadow); display: flex; cursor: grab; }
 .note:hover { box-shadow: var(--lift-shadow); }
 .stage.tool-hand .note { cursor: inherit; }
@@ -272,13 +334,6 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .n-tools { position: absolute; left: 0; right: 0; bottom: 100%; padding-bottom: 4px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
 .note:hover .n-tools, .n-tools:focus-within { opacity: 1; }
 .n-tools button { background: var(--surface); color: var(--ink); box-shadow: var(--float-shadow); border-radius: 7px; font-size: 11.5px; font-weight: 500; padding: 3px 8px; white-space: nowrap; }
-
-.annot { position: absolute; left: 0; top: 0; pointer-events: none; }
-.tip { position: absolute; width: 310px; display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; align-items: start; }
-.tip .num { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; font-size: 11.5px; font-weight: 700; }
-.tip b { font-size: 15px; font-weight: 600; line-height: 22px; letter-spacing: -0.005em; }
-.tip p { grid-column: 2; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--muted); }
-.tip .hide { grid-column: 2; justify-self: start; margin-top: 4px; pointer-events: auto; font-size: 12px; color: var(--muted); text-decoration: underline; white-space: nowrap; }
 
 /* ---------- Conversation view ---------- */
 .focus { position: fixed; inset: 0; z-index: 30; background: var(--surface); display: flex; flex-direction: column; animation: rise 0.22s ease-out; }
@@ -300,7 +355,10 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .forks .chip { display: inline-flex; }
 .f-label { width: 100%; font-size: 12px; color: var(--muted); }
 
-.sel-btn { position: fixed; z-index: 50; transform: translate(-50%, calc(-100% - 8px)); background: var(--ink); color: var(--on-ink); font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px; box-shadow: var(--float-shadow); white-space: nowrap; }
+.sel-bar { position: fixed; z-index: 50; transform: translate(-50%, calc(-100% - 8px)); display: flex; background: var(--ink); color: var(--on-ink); border-radius: 8px; box-shadow: var(--float-shadow); white-space: nowrap; overflow: hidden; }
+.sel-bar button { font-size: 12.5px; font-weight: 600; padding: 7px 12px; }
+.sel-bar button:hover { background: color-mix(in srgb, var(--on-ink) 16%, transparent); }
+.sel-bar button + button { border-left: 1px solid color-mix(in srgb, var(--on-ink) 25%, transparent); }
 .toast { position: fixed; z-index: 45; left: 50%; bottom: 116px; transform: translateX(-50%); background: var(--ink); color: var(--on-ink); padding: 8px 8px 8px 14px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .toast button { font-weight: 600; text-decoration: underline; padding: 2px 6px; }
 
@@ -309,7 +367,11 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
   .board-pill { gap: 8px; }
   .board-name { width: 96px; margin-left: 0; }
   .new-board { margin-left: -6px; }
-  .board-menu { width: min(340px, calc(100vw - 24px)); }
+  /* Too narrow to hang the menu off the button, so it takes the pill's left edge. */
+  .boards-anchor { position: static; }
+  .board-menu { top: calc(100% + 6px); width: min(340px, calc(100vw - 24px)); }
+  .guide { top: 112px; left: 12px; right: 12px; width: auto; }
+  .g-step.done, .g-step.next { display: none; }
   .view-pill { top: 60px; left: 12px; right: auto; }
   .seg button { padding: 5px 8px; font-size: 12px; }
   .rail { top: auto; bottom: 170px; transform: none; }

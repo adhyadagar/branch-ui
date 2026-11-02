@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { branchOnPassage } from "@/lib/actions";
+import { addAnnotation, addHighlight, branchOnPassage } from "@/lib/actions";
 
-type Pending = { turnId: string; text: string; x: number; y: number };
+type Pending = { turnId: string; text: string; x: number; y: number; bottom: number };
 
-/** Highlight any passage of an answer to open a branch about just that passage. */
+/** Select any passage of an answer to open a branch about it, highlight it, or write a note on it. */
 export function SelectionBranch() {
   const [pending, setPending] = useState<Pending | null>(null);
 
@@ -24,7 +24,7 @@ export function SelectionBranch() {
         )?.closest<HTMLElement>("[data-answer-of]");
         if (!host) return setPending(null);
         const rect = range.getBoundingClientRect();
-        setPending({ turnId: host.dataset.answerOf!, text, x: rect.left + rect.width / 2, y: rect.top });
+        setPending({ turnId: host.dataset.answerOf!, text, x: rect.left + rect.width / 2, y: rect.top, bottom: rect.bottom });
       }, 0);
     };
     const onScroll = () => setPending(null);
@@ -38,20 +38,18 @@ export function SelectionBranch() {
 
   if (!pending) return null;
 
+  const act = (fn: (text: string) => void) => () => {
+    fn(pending.text.slice(0, 1200));
+    window.getSelection()?.removeAllRanges();
+    setPending(null);
+  };
+
   return createPortal(
-    <button
-      className="sel-btn"
-      style={{ left: pending.x, top: pending.y }}
-      onMouseDown={(e) => e.preventDefault()}
-      onMouseUp={(e) => e.stopPropagation()}
-      onClick={() => {
-        branchOnPassage(pending.turnId, pending.text.slice(0, 1200));
-        window.getSelection()?.removeAllRanges();
-        setPending(null);
-      }}
-    >
-      → Branch on this
-    </button>,
+    <div className="sel-bar" style={{ left: pending.x, top: pending.y }} onMouseDown={(e) => e.preventDefault()} onMouseUp={(e) => e.stopPropagation()}>
+      <button onClick={act((text) => branchOnPassage(pending.turnId, text))}>→ Branch on this</button>
+      <button onClick={act((text) => addHighlight(pending.turnId, text))}>Highlight</button>
+      <button onClick={act((text) => addAnnotation(pending.turnId, pending.x, pending.bottom, text))}>Add note</button>
+    </div>,
     document.body,
   );
 }

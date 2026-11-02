@@ -20,10 +20,10 @@ export const scene = {
   heights: {} as Record<string, number>,
   widthOf: (() => CARD_W) as (id: string) => number,
   slotHeight: 110,
-  /** Extra space to include when fitting the board, such as the on-board tips. */
-  extraBounds: null as { minY: number; maxX: number } | null,
   /** Where the threads panel ends, so the camera doesn't put a card behind it. */
   panelRight: 0,
+  /** The same for the guide, measured from the right edge of the screen. */
+  rightInset: 0,
 };
 
 export const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -81,7 +81,8 @@ function viewArea() {
   const phone = innerWidth <= 760;
   const l = phone ? 12 : Math.max(72, scene.panelRight);
   const t = phone ? 112 : 68;
-  return { l, t, w: innerWidth - l - 16, h: innerHeight - t - 118 };
+  const r = phone ? 16 : Math.max(16, scene.rightInset);
+  return { l, t, w: innerWidth - l - r, h: innerHeight - t - 118 };
 }
 
 export function flyTo(id: string, minZoom = 0.85) {
@@ -113,10 +114,6 @@ export function fit(ids?: string[]) {
     y0 = Math.min(y0, p.y - 36); // The label above a card.
     x1 = Math.max(x1, p.x + scene.widthOf(id));
     y1 = Math.max(y1, p.y + (scene.heights[id] ?? 170));
-  }
-  if (!ids && scene.extraBounds) {
-    y0 = Math.min(y0, scene.extraBounds.minY);
-    x1 = Math.max(x1, scene.extraBounds.maxX);
   }
   const a = viewArea();
   const s = Math.max(MIN_ZOOM, Math.min(1, a.w / (x1 - x0), a.h / (y1 - y0)));

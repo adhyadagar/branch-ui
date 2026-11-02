@@ -28,6 +28,18 @@ export type Note = {
   h: number;
 };
 
+/**
+ * A highlight or note on a card. Unlike a sticky note, it belongs to the card.
+ * A quote with no text is a plain highlight, and text with no quote is a note on the whole card.
+ */
+export type Annotation = {
+  id: string;
+  turnId: string;
+  quote?: string;
+  text: string;
+  createdAt: number;
+};
+
 export type LayoutMode = "threads" | "mind";
 
 export type Point = { x: number; y: number };
@@ -39,6 +51,7 @@ export type Board = {
   rootIds: string[];
   turns: Record<string, Turn>;
   notes: Note[];
+  annotations: Annotation[];
   mode: LayoutMode;
   /** Manual drag offsets, per layout. They apply to a card and everything under it. */
   offsets: Record<LayoutMode, Record<string, Point>>;

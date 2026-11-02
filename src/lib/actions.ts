@@ -1,8 +1,8 @@
 "use client";
 
 import { nanoid } from "nanoid";
-import type { Board, LayoutMode, Turn, TurnKind } from "./types";
-import { getActiveBoard, mutateActive, useStore, type AskMode, type State, type Toast } from "./store";
+import type { Annotation, Board, LayoutMode, Turn, TurnKind } from "./types";
+import { getActiveBoard, mutateActive, useStore, type AskMode, type GuideStep, type State, type Toast } from "./store";
 import { chainThrough, descendantIds, followupOf, pathTo, shortLabel, threadFrom } from "./tree";
 import { NOTE_SIZE, type Slot } from "./layout";
 import { afterLayout, fit, flyTo, focusBar, frameSlot, getCamera, glideNext } from "./view";
@@ -10,13 +10,14 @@ import { NOTE_COLORS } from "./colors";
 import { submitTurn } from "./ask";
 import { parseAnswer } from "./answer";
 import { markOnCard } from "./search";
-import { makeSampleBoard } from "./sample";
+import { scrollToPassage } from "./annotations";
+import { isExampleBoard, makeSampleBoard, SAMPLE_TITLE } from "./sample";
 
 const get = () => useStore.getState();
 const set = useStore.setState;
 const UNTITLED = "Untitled board";
 
-const FRESH_UI = { selectedId: null, asking: false, quote: null, chatId: null, barText: "", menuId: null, editNoteId: null, toast: null } satisfies Partial<State>;
+const FRESH_UI = { selectedId: null, asking: false, quote: null, chatId: null, barText: "", menuId: null, editNoteId: null, notePop: null, toast: null } satisfies Partial<State>;
 
 /* ---------- Boards ---------- */
 
@@ -28,6 +29,7 @@ function emptyBoard(): Board {
     rootIds: [],
     turns: {},
     notes: [],
+    annotations: [],
     mode: "threads",
     offsets: { threads: {}, mind: {} },
     sizes: {},
@@ -41,28 +43,75 @@ function addBoard(board: Board) {
   set((s) => ({ ...FRESH_UI, boards: { ...s.boards, [board.id]: board }, activeBoardId: board.id }));
 }
 
-export function newBoard() {
-  addBoard(emptyBoard());
-  focusBar();
-}
-
-export const addExampleBoard = () => addBoard(makeSampleBoard());
-
 export function setActiveBoard(id: string) {
   set({ ...FRESH_UI, activeBoardId: id });
 }
 
+const isBlank = (b: Board) => b.title === UNTITLED && !b.rootIds.length && !b.notes.length;
+
+/** Reuses a board that's still blank, so pressing + again doesn't pile up untitled ones. */
+function openBlankBoard() {
+  const s = get();
+  const blank = Object.values(s.boards).find(isBlank);
+  if (!blank) addBoard(emptyBoard());
+  else if (blank.id !== s.activeBoardId) setActiveBoard(blank.id);
+}
+
+export function newBoard() {
+  openBlankBoard();
+  focusBar();
+}
+
+/** Goes to the example if it's already here, so there's never a second identical copy. Starts the guide over. */
+export function openExampleBoard() {
+  const existing = Object.values(get().boards).find((b) => b.title === SAMPLE_TITLE);
+  if (existing) setActiveBoard(existing.id);
+  else addBoard(makeSampleBoard());
+  set({ guide: { done: [], dismissed: false } });
+}
+
 export function deleteBoard(id: string) {
-  set((s) => {
-    const boards = { ...s.boards };
-    delete boards[id];
-    const remaining = Object.values(boards).sort((a, b) => b.updatedAt - a.updatedAt);
-    if (!remaining.length) {
-      const b = emptyBoard();
-      return { ...FRESH_UI, boards: { [b.id]: b }, activeBoardId: b.id };
-    }
-    return s.activeBoardId === id ? { ...FRESH_UI, boards, activeBoardId: remaining[0].id } : { boards };
+  const s = get();
+  const board = s.boards[id];
+  if (!board) return;
+  const wasActive = s.activeBoardId === id;
+  const boards = { ...s.boards };
+  delete boards[id];
+  const remaining = Object.values(boards).sort((a, b) => b.updatedAt - a.updatedAt);
+  // Deleting the last board leaves a blank one, which Undo takes away again.
+  const blank = remaining.length ? null : emptyBoard();
+  if (blank) set({ ...FRESH_UI, boards: { [blank.id]: blank }, activeBoardId: blank.id });
+  else if (wasActive) set({ ...FRESH_UI, boards, activeBoardId: remaining[0].id });
+  else set({ boards });
+
+  showToast({
+    text: `Deleted “${shortLabel(board.title, 32)}”.`,
+    undo: () => {
+      // Updates to a deleted board go nowhere, so an answer may have finished unseen.
+      const turns = { ...board.turns };
+      for (const t in turns) {
+        if (turns[t].status === "streaming") turns[t] = { ...turns[t], status: turns[t].answer ? "done" : "error", error: turns[t].answer ? undefined : "Interrupted." };
+      }
+      set((now) => {
+        const restored = { ...now.boards, [id]: { ...board, turns } };
+        if (blank && restored[blank.id] && isBlank(restored[blank.id])) delete restored[blank.id];
+        return wasActive ? { ...FRESH_UI, boards: restored, activeBoardId: id } : { boards: restored };
+      });
+    },
   });
+}
+
+/* ---------- Guided round on the example board ---------- */
+
+function completeStep(step: GuideStep) {
+  const { guide } = get();
+  const board = getActiveBoard();
+  if (guide.dismissed || guide.done.includes(step) || !board || !isExampleBoard(board)) return;
+  set({ guide: { ...guide, done: [...guide.done, step] } });
+}
+
+export function dismissGuide() {
+  set((s) => ({ guide: { ...s.guide, dismissed: true } }));
 }
 
 /** Open the most recent board, or show the example the very first time. */
@@ -71,7 +120,7 @@ export function ensureActiveBoard() {
   if (s.activeBoardId && s.boards[s.activeBoardId]) return;
   const recent = Object.values(s.boards).sort((a, b) => b.updatedAt - a.updatedAt)[0];
   if (recent) setActiveBoard(recent.id);
-  else addExampleBoard();
+  else openExampleBoard();
 }
 
 /* ---------- Selecting ---------- */
@@ -93,6 +142,7 @@ export function select(id: string | null) {
   const patch: Partial<State> = { selectedId: id };
   if (id && id !== s.selectedId && board?.turns[id]) patch.askMode = followupOf(board, id) ? "branch" : "follow";
   set(patch);
+  if (id) completeStep("select");
 }
 
 /* ---------- Asking ---------- */
@@ -141,8 +191,13 @@ export function clearQuote() {
 }
 
 function startAnswer(parentId: string | null, kind: TurnKind, question: string, quote?: string) {
+  // The example is for trying things out, so a topic of your own gets a board of its own.
+  const current = getActiveBoard();
+  const leavesExample = !parentId && !!current && isExampleBoard(current);
+  if (leavesExample) openBlankBoard();
   const board = getActiveBoard();
   if (!board) return;
+  if (kind === "branch") completeStep("branch");
   const id = nanoid(10);
   const turn: Turn = { id, parentId, kind, question, quote, answer: "", status: "streaming", createdAt: Date.now() };
   mutateActive((b) => ({
@@ -156,6 +211,7 @@ function startAnswer(parentId: string | null, kind: TurnKind, question: string, 
   set({ selectedId: id, askMode: "follow", menuId: null, chatId: inChat ? id : null });
   submitTurn(board.id, id);
   if (!inChat) afterLayout(() => flyTo(id));
+  if (leavesExample) showToast({ text: "Started a new board. The example is still under Boards." });
 }
 
 /** What the bottom bar or the slot sends. Where the card goes depends on what's going on. */
@@ -234,7 +290,8 @@ export function deleteTurn(id: string) {
       delete threads[g];
       delete mind[g];
     }
-    return { ...b, turns, sizes, collapsed, offsets: { threads, mind }, rootIds: b.rootIds.filter((r) => r !== id) };
+    const annotations = b.annotations.filter((a) => !gone.includes(a.turnId));
+    return { ...b, turns, sizes, collapsed, annotations, offsets: { threads, mind }, rootIds: b.rootIds.filter((r) => r !== id) };
   });
   set((s) => ({ asking: false, quote: null, menuId: null, selectedId: s.selectedId && gone.includes(s.selectedId) ? turn.parentId : s.selectedId }));
 }
@@ -275,6 +332,7 @@ export function resetCardSize(id: string) {
 
 export function openChat(id: string) {
   set({ asking: false, quote: null, menuId: null, chatId: id, selectedId: id });
+  completeStep("chat");
 }
 
 export function closeChat() {
@@ -294,6 +352,16 @@ export function openThreads() {
 
 export function closeThreads() {
   set({ threadsOpen: false });
+}
+
+/** The toolbar's two list buttons: one switches the panel to its list, or closes it if it's already showing. */
+export function togglePanel(tab: State["panelTab"]) {
+  const s = get();
+  if (s.threadsOpen && s.panelTab === tab) return closeThreads();
+  const opening = !s.threadsOpen;
+  set({ panelTab: tab });
+  if (opening && tab === "threads") openThreads();
+  else set({ threadsOpen: true });
 }
 
 /** Open whatever is hiding these cards, since a collapsed card's children aren't on the board. */
@@ -328,22 +396,94 @@ export function goToCard(id: string) {
 /** The card opened to show the last search match, closed again when the next one is opened. */
 let openedForMatch: string | null = null;
 
-/** Go to a search result, opening the card if the match is further down its answer. */
-export function goToMatch(id: string, terms: string[], inAnswer: boolean) {
-  const turn = getActiveBoard()?.turns[id];
-  if (!turn) return;
-  goToCard(id);
+function openForReading(id: string, answer: string, open: boolean) {
   const expanded = { ...get().expanded };
   if (openedForMatch && openedForMatch !== id) expanded[openedForMatch] = false;
   openedForMatch = null;
-  if (inAnswer && !expanded[id] && parseAnswer(turn.answer).hasMore) {
+  if (open && !expanded[id] && parseAnswer(answer).hasMore) {
     expanded[id] = true;
     openedForMatch = id;
   }
   glideNext();
   set({ expanded });
+}
+
+/** Go to a search result, opening the card if the match is further down its answer. */
+export function goToMatch(id: string, terms: string[], inAnswer: boolean) {
+  const turn = getActiveBoard()?.turns[id];
+  if (!turn) return;
+  goToCard(id);
+  openForReading(id, turn.answer, inAnswer);
   // A frame later, because on a phone the panel is closing and clears the marks as it goes.
   afterLayout(() => requestAnimationFrame(() => markOnCard(id, terms)));
+}
+
+export function goToAnnotation(id: string) {
+  const board = getActiveBoard();
+  const note = board?.annotations.find((a) => a.id === id);
+  const turn = note && board?.turns[note.turnId];
+  if (!note || !turn) return;
+  goToCard(turn.id);
+  openForReading(turn.id, turn.answer, !!note.quote);
+  if (note.quote) afterLayout(() => requestAnimationFrame(() => scrollToPassage(turn.id, note.quote!)));
+}
+
+/* ---------- Notes ---------- */
+
+/** Notes that sit loose on the board are in the same list as the ones stuck to cards. */
+export function goToBoardNote(id: string) {
+  select(null);
+  afterLayout(() => flyTo(id));
+}
+
+/** Open what's written on a card, or just one note. */
+export function openNotes(turnId: string, x: number, y: number, onlyId?: string) {
+  closeNotes();
+  set({ notePop: { turnId, onlyId, x, y }, menuId: null });
+}
+
+/** Marking the same words twice gives you the one you already have. */
+function ensureAnnotation(turnId: string, quote?: string): string {
+  const existing = quote ? getActiveBoard()?.annotations.find((a) => a.turnId === turnId && a.quote === quote) : undefined;
+  if (existing) return existing.id;
+  const id = nanoid(10);
+  mutateActive((b) => ({ ...b, annotations: [...b.annotations, { id, turnId, quote, text: "", createdAt: Date.now() }] }));
+  return id;
+}
+
+export function addHighlight(turnId: string, quote: string) {
+  closeNotes();
+  ensureAnnotation(turnId, quote);
+}
+
+/** Start a note on a card, or on a passage of its answer, ready to type in. */
+export function addAnnotation(turnId: string, x: number, y: number, quote?: string) {
+  closeNotes();
+  const id = ensureAnnotation(turnId, quote);
+  set({ notePop: { turnId, onlyId: id, x, y }, menuId: null });
+}
+
+export function setAnnotationText(id: string, text: string) {
+  mutateActive((b) => ({ ...b, annotations: b.annotations.map((a) => (a.id === id ? { ...a, text } : a)) }));
+}
+
+/** A note on a card with nothing written is nothing to keep, while a passage stays as a highlight. */
+export function closeNotes() {
+  if (!get().notePop) return;
+  const keep = (a: Annotation) => a.text.trim() || a.quote;
+  if (getActiveBoard()?.annotations.some((a) => !keep(a))) mutateActive((b) => ({ ...b, annotations: b.annotations.filter(keep) }));
+  set({ notePop: null });
+}
+
+export function deleteAnnotation(id: string) {
+  const board = getActiveBoard();
+  const note = board?.annotations.find((a) => a.id === id);
+  if (!board || !note) return;
+  mutateActive((b) => ({ ...b, annotations: b.annotations.filter((a) => a.id !== id) }));
+  const pop = get().notePop;
+  if (pop && (pop.onlyId === id || !getActiveBoard()?.annotations.some((a) => a.turnId === pop.turnId && a.text.trim()))) set({ notePop: null });
+  if (!note.text.trim() && !note.quote) return;
+  showToast({ text: note.text.trim() ? "Note deleted." : "Highlight removed.", undo: () => mutateActive((b) => ({ ...b, annotations: [...b.annotations, note] })) });
 }
 
 /* ---------- Board-wide ---------- */

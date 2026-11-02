@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type MouseEvent, type PointerEvent } from "react";
 import type { Board } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { addNote, ask, endAsk, moveCard, moveNote, openChat, openThreads, closeChat, resizeItem, select, slotFor, STARTERS, clearQuote } from "@/lib/actions";
+import { addNote, ask, endAsk, moveCard, moveNote, openChat, openExampleBoard, openThreads, closeChat, resizeItem, select, slotFor, STARTERS, clearQuote } from "@/lib/actions";
 import { childrenOf, descendantIds, pathTo, visibleTurns } from "@/lib/tree";
 import { CARD_W, edgePath, layoutBoard, MIN_CARD, SLOT_ID, widthOf, type Positions, type Slot } from "@/lib/layout";
 import { threadColors } from "@/lib/colors";
@@ -14,15 +14,10 @@ import { PromptBar } from "./PromptBar";
 import { SelectionBranch } from "./SelectionBranch";
 import { BoardPill, Rail, Toast, ViewPill, ZoomPill } from "./Chrome";
 import { ThreadsPanel } from "./ThreadsPanel";
+import { Guide } from "./Guide";
 
 const GLIDE_MS = 420;
 const FAR_ZOOM = 0.5;
-const TIPS_Y = -150;
-const TIPS = [
-  { x: 0, title: "Click a card", text: "It lights up the path the model would see. Other branches stay out." },
-  { x: 340, title: "Highlight to branch", text: "Select text in any answer, then branch on just that passage." },
-  { x: 680, title: "Open as a chat", text: "The arrows beside a card's label open that path as a normal conversation." },
-];
 
 type Gesture =
   | { kind: "pan"; x: number; y: number; camX: number; camY: number; moved: boolean }
@@ -35,7 +30,6 @@ export function Canvas({ board }: { board: Board }) {
   const askMode = useStore((s) => s.askMode);
   const quote = useStore((s) => s.quote);
   const tool = useStore((s) => s.tool);
-  const tipsHidden = useStore((s) => s.tipsHidden);
   const expanded = useStore((s) => s.expanded);
   const menuId = useStore((s) => s.menuId);
   const editNoteId = useStore((s) => s.editNoteId);
@@ -53,7 +47,6 @@ export function Canvas({ board }: { board: Board }) {
   const colors = useMemo(() => threadColors(board), [board]);
   const path = useMemo(() => (selectedId && board.turns[selectedId] ? new Set(pathTo(board, selectedId).map((t) => t.id)) : null), [board, selectedId]);
   const isEmpty = board.rootIds.length === 0 && board.notes.length === 0;
-  const showTips = !tipsHidden && board.rootIds.length > 0;
 
   // Camera → DOM, outside React so panning never re-renders the cards.
   useLayoutEffect(() => {
@@ -164,7 +157,6 @@ export function Canvas({ board }: { board: Board }) {
   useLayoutEffect(() => {
     latest.current = { board, slot };
     scene.widthOf = (id) => widthOf(latest.current.board, id);
-    scene.extraBounds = showTips ? { minY: TIPS_Y - 6, maxX: TIPS[TIPS.length - 1].x + 310 } : null;
     worldRef.current!.querySelectorAll<HTMLElement>("[data-item]").forEach((el) => {
       const id = el.dataset.item!;
       if (id !== SLOT_ID) scene.heights[id] = el.offsetHeight;
@@ -322,22 +314,6 @@ export function Canvas({ board }: { board: Board }) {
     <>
       <main className={`stage ${tool === "hand" ? "tool-hand" : ""}`} ref={stageRef} onPointerDown={onPointerDown} onClick={onClick} onDoubleClick={onDoubleClick}>
         <div className="world" ref={worldRef}>
-          {showTips && (
-            <div className="annot">
-              {TIPS.map((t, i) => (
-                <div className="tip" key={t.title} style={{ left: t.x, top: TIPS_Y }}>
-                  <span className="num">{i + 1}</span>
-                  <b>{t.title}</b>
-                  <p>{t.text}</p>
-                  {i === TIPS.length - 1 && (
-                    <button className="hide" onClick={() => useStore.setState({ tipsHidden: true })}>
-                      Hide these tips
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
           <svg className="edges" ref={edgesRef} aria-hidden="true">
             {turns.map((t) => {
               if (!t.parentId) return null;
@@ -375,6 +351,8 @@ export function Canvas({ board }: { board: Board }) {
                   hasFollowup={kids.some((k) => k.kind === "followup")}
                   childQuestions={kids.map((k) => k.question).join("\n")}
                   hiddenCount={collapsed ? descendantIds(board, t.id).length : 0}
+                  noteCount={board.annotations.filter((a) => a.turnId === t.id && a.text.trim()).length}
+                  annotated={board.annotations.some((a) => a.turnId === t.id)}
                   collapsed={collapsed}
                   expanded={!!expanded[t.id]}
                   width={board.sizes[t.id]?.w ?? CARD_W}
@@ -402,6 +380,9 @@ export function Canvas({ board }: { board: Board }) {
                 </button>
               ))}
             </div>
+            <button className="empty-example" onClick={openExampleBoard}>
+              Or see how it works on the example board
+            </button>
           </div>
         )}
 
@@ -409,6 +390,7 @@ export function Canvas({ board }: { board: Board }) {
         <ViewPill board={board} />
         <Rail />
         <ThreadsPanel board={board} colors={colors} />
+        <Guide board={board} />
         <ZoomPill />
       </main>
       <PromptBar />

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import type { Board } from "@/lib/types";
+import type { Board, Note } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { closeThreads, goToCard, goToMatch, goToThread, openChat } from "@/lib/actions";
-import { clearCardMarks, searchTerms, searchThreads, termPattern } from "@/lib/search";
-import { listThreads, type Thread } from "@/lib/tree";
+import { closeThreads, goToAnnotation, goToBoardNote, goToCard, goToMatch, goToThread, openChat } from "@/lib/actions";
+import { whenWritten } from "@/lib/annotations";
+import { clearCardMarks, passageInContext, searchTerms, searchThreads, termPattern } from "@/lib/search";
+import { listThreads, shortLabel, type Thread } from "@/lib/tree";
 import { scene } from "@/lib/view";
 import { OpenIcon, SearchIcon } from "./icons";
 
@@ -19,6 +20,32 @@ const closeOnPhone = () => {
 
 function Marked({ text, terms }: { text: string; terms: string[] }) {
   return <>{text.split(termPattern(terms)).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part))}</>;
+}
+
+const matchesTerms = (text: string, terms: string[]) => terms.every((t) => text.toLowerCase().includes(t));
+
+/** Notes that aren't stuck to anything, in the same paper they have on the board. */
+function BoardNotes({ notes, terms }: { notes: Note[]; terms: string[] }) {
+  if (!notes.length) return null;
+  return (
+    <section className="r-group">
+      <p className="r-label">On the board</p>
+      {notes.map((note) => (
+        <button
+          key={note.id}
+          className="r-paper"
+          data-row
+          style={{ ["--n" as string]: note.color }}
+          onClick={() => {
+            goToBoardNote(note.id);
+            closeOnPhone();
+          }}
+        >
+          {terms.length ? <Marked text={note.text} terms={terms} /> : note.text}
+        </button>
+      ))}
+    </section>
+  );
 }
 
 function ThreadRow({ thread, color, selectedId }: { thread: Thread; color: string; selectedId: string | null }) {
@@ -70,14 +97,27 @@ function ThreadRow({ thread, color, selectedId }: { thread: Thread; color: strin
 
 function Panel({ board, colors }: { board: Board; colors: Record<string, string> }) {
   const selectedId = useStore((s) => s.selectedId);
+  const tab = useStore((s) => s.panelTab);
+  const setTab = (panelTab: typeof tab) => useStore.setState({ panelTab });
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const terms = useMemo(() => searchTerms(query), [query]);
   const threads = useMemo(() => listThreads(board), [board]);
-  const results = useMemo(() => (terms.length ? searchThreads(threads, terms) : null), [threads, terms]);
+  const results = useMemo(() => (tab === "threads" && terms.length ? searchThreads(threads, terms, board.annotations) : null), [tab, threads, terms, board]);
   const matchCount = results?.reduce((n, r) => n + r.hits.length, 0) ?? 0;
+
+  // In the order of the board, so reading them follows the way you went.
+  const noteGroups = useMemo(() => {
+    const kept = board.annotations.filter((a) => a.text.trim() || a.quote);
+    return threads
+      .map((thread) => ({ thread, notes: thread.cards.flatMap((c) => kept.filter((a) => a.turnId === c.id && matchesTerms(`${a.text}\n${a.quote ?? ""}`, terms))) }))
+      .filter((g) => g.notes.length);
+  }, [threads, board, terms]);
+  const boardNotes = board.notes.filter((n) => matchesTerms(n.text, terms));
+  const noteCount = board.annotations.filter((a) => a.text.trim() || a.quote).length + board.notes.length;
+  const shownNotes = noteGroups.reduce((n, g) => n + g.notes.length, 0) + boardNotes.length;
 
   useLayoutEffect(() => {
     scene.panelRight = PANEL_RIGHT;
@@ -114,16 +154,25 @@ function Panel({ board, colors }: { board: Board; colors: Record<string, string>
 
   let summary = null;
   if (results) {
-    summary = results.length
-      ? `${matchCount === 1 ? "1 card" : `${matchCount} cards`} in ${results.length === 1 ? "1 thread" : `${results.length} threads`}`
-      : `Nothing on this board matches “${query.trim()}”.`;
+    const inThreads = `${matchCount === 1 ? "1 card" : `${matchCount} cards`} in ${results.length === 1 ? "1 thread" : `${results.length} threads`}`;
+    const loose = boardNotes.length === 1 ? "1 note on the board" : `${boardNotes.length} notes on the board`;
+    if (results.length) summary = boardNotes.length ? `${inThreads}, and ${loose}` : inThreads;
+    else summary = boardNotes.length ? loose : `Nothing on this board matches “${query.trim()}”.`;
+  } else if (tab === "notes" && terms.length) {
+    summary = shownNotes ? `${shownNotes} found` : `None of your highlights or notes match “${query.trim()}”.`;
   }
 
   return (
     <div className="float threads-panel" onKeyDown={onKeyDown}>
       <div className="t-head">
-        <h2>Threads</h2>
-        <span className="count">{threads.length}</span>
+        <div className="seg" role="group" aria-label="Show">
+          <button aria-pressed={tab === "threads"} onClick={() => setTab("threads")}>
+            Threads <span className="count">{threads.length}</span>
+          </button>
+          <button aria-pressed={tab === "notes"} onClick={() => setTab("notes")}>
+            Highlights & notes <span className="count">{noteCount}</span>
+          </button>
+        </div>
         <button className="x" onClick={closeThreads} aria-label="Close threads">
           ✕
         </button>
@@ -135,8 +184,8 @@ function Panel({ board, colors }: { board: Board; colors: Record<string, string>
           id="threadSearch"
           type="text"
           value={query}
-          placeholder="Search questions and answers"
-          aria-label="Search this board's threads"
+          placeholder={tab === "threads" ? "Search questions, answers and notes" : "Search highlights and notes"}
+          aria-label={tab === "threads" ? "Search this board's threads" : "Search your highlights and notes"}
           autoComplete="off"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -149,9 +198,52 @@ function Panel({ board, colors }: { board: Board; colors: Record<string, string>
           {summary}
         </p>
       )}
-      <nav className="t-list" ref={listRef} aria-label={results ? "Search results" : "Threads on this board"}>
-        {results
-          ? results.map(({ thread, hits }) => (
+      <nav className="t-list" ref={listRef} aria-label={tab === "notes" ? "Your highlights and notes" : results ? "Search results" : "Threads on this board"}>
+        {tab === "notes" && (
+          <>
+            {noteGroups.map(({ thread, notes }) => (
+              <section key={thread.start.id} className="r-group" style={{ ["--c" as string]: colors[thread.start.id] }}>
+                <button className="r-thread" title={thread.start.question} onClick={() => goToThread(thread.start.id)}>
+                  <span className="o-sq" />
+                  <span>{thread.start.question}</span>
+                </button>
+                {notes.map((note) => {
+                  const context = note.quote && board.turns[note.turnId] ? passageInContext(board.turns[note.turnId].answer, note.quote) : null;
+                  return (
+                    <button
+                      key={note.id}
+                      className={`r-hit ${note.turnId === selectedId ? "active" : ""}`}
+                      data-row
+                      onClick={() => {
+                        goToAnnotation(note.id);
+                        closeOnPhone();
+                      }}
+                    >
+                      {note.quote && (
+                        <span className="r-quote">
+                          {context?.before}
+                          <mark>{context?.quote ?? shortLabel(note.quote, 110)}</mark>
+                          {context?.after}
+                        </span>
+                      )}
+                      {note.text.trim() && (
+                        <span className="r-note">
+                          <Marked text={note.text} terms={terms} />
+                        </span>
+                      )}
+                      <span className="t-meta">{whenWritten(note.createdAt)}</span>
+                    </button>
+                  );
+                })}
+              </section>
+            ))}
+            <BoardNotes notes={boardNotes} terms={terms} />
+            {!noteCount && <p className="outline-empty">Select some words in an answer to highlight them or add a note, or press Note on a card. Everything you mark collects here.</p>}
+          </>
+        )}
+        {tab === "threads" &&
+          (results
+            ? results.map(({ thread, hits }) => (
               <section key={thread.start.id} className="r-group" style={{ ["--c" as string]: colors[thread.start.id] }}>
                 <button className="r-thread" title={thread.start.question} onClick={() => goToThread(thread.start.id)}>
                   <span className="o-sq" />
@@ -179,8 +271,9 @@ function Panel({ board, colors }: { board: Board; colors: Record<string, string>
                 ))}
               </section>
             ))
-          : threads.map((t) => <ThreadRow key={t.start.id} thread={t} color={colors[t.start.id]} selectedId={selectedId} />)}
-        {!threads.length && <p className="outline-empty">Threads you start will be listed here.</p>}
+            : threads.map((t) => <ThreadRow key={t.start.id} thread={t} color={colors[t.start.id]} selectedId={selectedId} />))}
+        {tab === "threads" && results && <BoardNotes notes={boardNotes} terms={terms} />}
+        {tab === "threads" && !threads.length && <p className="outline-empty">Threads you start will be listed here.</p>}
       </nav>
     </div>
   );

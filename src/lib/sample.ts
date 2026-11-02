@@ -3,6 +3,11 @@ import type { Board, Turn, TurnKind } from "./types";
 
 /** The board a first-time visitor sees, so the idea is obvious before they type anything. */
 
+export const SAMPLE_TITLE = "Example: How neural networks learn";
+
+/** Going by the title means a renamed example counts as the user's own board. */
+export const isExampleBoard = (board: Board) => board.title === SAMPLE_TITLE;
+
 function answer(lead: string, rest: string, ideas: string[] = []): string {
   const list = ideas.length ? `\n\n**Branch ideas**\n${ideas.map((q) => `- ${q}`).join("\n")}` : "";
   return `${lead}\n\n${rest}${list}`;
@@ -94,7 +99,7 @@ export function makeSampleBoard(): Board {
 
   return {
     id: nanoid(10),
-    title: "Example: How neural networks learn",
+    title: SAMPLE_TITLE,
     rootIds: [root],
     turns,
     notes: [
@@ -102,6 +107,7 @@ export function makeSampleBoard(): Board {
       { id: nanoid(10), text: "Why does deep beat wide?", color: "#f4d4d6", x: -190, y: 0, w: 150, h: 150 },
       { id: nanoid(10), text: "Build a tiny network by hand", color: "#d4e6ef", x: -356, y: 166, w: 150, h: 150 },
     ],
+    annotations: [],
     mode: "threads",
     offsets: { threads: {}, mind: {} },
     sizes: {},

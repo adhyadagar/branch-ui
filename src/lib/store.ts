@@ -7,11 +7,13 @@ import type { Board, Turn } from "./types";
 export type Tool = "select" | "hand";
 export type AskMode = "follow" | "branch";
 export type Toast = { text: string; undo?: () => void };
+export type GuideStep = "select" | "branch" | "chat";
 
 type Persisted = {
   boards: Record<string, Board>;
   activeBoardId: string | null;
-  tipsHidden: boolean;
+  /** How far the user has got through the guided round on the example board. */
+  guide: { done: GuideStep[]; dismissed: boolean };
 };
 
 export type State = Persisted & {
@@ -30,7 +32,10 @@ export type State = Persisted & {
   menuId: string | null;
   tool: Tool;
   threadsOpen: boolean;
+  panelTab: "threads" | "notes";
   editNoteId: string | null;
+  /** A card's notes open at this spot on screen, or just one of them. */
+  notePop: { turnId: string; onlyId?: string; x: number; y: number } | null;
   toast: Toast | null;
 };
 
@@ -80,6 +85,7 @@ function migrateBoardV1(old: Record<string, unknown>): Board {
     rootIds: turns[rootId] ? [rootId] : [],
     turns,
     notes: [],
+    annotations: [],
     mode: "threads",
     offsets: { threads: (old.offsets as Board["offsets"]["threads"]) ?? {}, mind: {} },
     sizes: {},
@@ -94,7 +100,7 @@ export const useStore = create<State>()(
     (): State => ({
       boards: {},
       activeBoardId: null,
-      tipsHidden: false,
+      guide: { done: [], dismissed: false },
       selectedId: null,
       asking: false,
       askMode: "follow",
@@ -106,17 +112,19 @@ export const useStore = create<State>()(
       menuId: null,
       tool: "select",
       threadsOpen: false,
+      panelTab: "threads",
       editNoteId: null,
+      notePop: null,
       toast: null,
     }),
     {
       name: "branch-ui",
-      version: 3,
+      version: 5,
       storage: debouncedStorage,
-      partialize: (s): Persisted => ({ boards: s.boards, activeBoardId: s.activeBoardId, tipsHidden: s.tipsHidden }),
+      partialize: (s): Persisted => ({ boards: s.boards, activeBoardId: s.activeBoardId, guide: s.guide }),
       skipHydration: true,
       migrate: (persisted, version) => {
-        const p = persisted as Persisted;
+        const p = persisted as Persisted & { tipsHidden?: boolean };
         const boards: Persisted["boards"] = {};
         for (const [id, b] of Object.entries(p.boards ?? {})) {
           boards[id] = version < 2 ? migrateBoardV1(b as unknown as Record<string, unknown>) : b;
@@ -126,13 +134,18 @@ export const useStore = create<State>()(
             for (const t in turns) turns[t] = { ...turns[t], answer: turns[t].answer.replace(/^\s*<summary>[\s\S]*?<\/summary>\s*/, "") };
             boards[id] = { ...boards[id], turns };
           }
+          if (version < 5) boards[id] = { ...boards[id], annotations: [] };
         }
-        return { boards, activeBoardId: p.activeBoardId ?? null, tipsHidden: p.tipsHidden ?? false };
+        // v3 had on-board tips. Anyone who hid them doesn't need the guide that replaced them.
+        const guide = version < 4 ? { done: [], dismissed: p.tipsHidden ?? false } : p.guide;
+        return { boards, activeBoardId: p.activeBoardId ?? null, guide };
       },
       onRehydrateStorage: () => (state) => {
         // Streams don't survive a reload; settle anything that was mid-answer.
         if (!state) return;
         for (const b of Object.values(state.boards)) {
+          // A note on a card left blank when the page closed.
+          b.annotations = b.annotations.filter((a) => a.text.trim() || a.quote);
           for (const t of Object.values(b.turns)) {
             if (t.status === "streaming") {
               t.status = t.answer ? "done" : "error";

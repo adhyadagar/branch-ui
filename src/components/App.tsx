@@ -5,6 +5,7 @@ import { useActiveBoard, useStore } from "@/lib/store";
 import { ensureActiveBoard } from "@/lib/actions";
 import { Canvas } from "./Canvas";
 import { ChatView } from "./ChatView";
+import { NoteLayer } from "./Notes";
 
 export function App() {
   const [hydrated, setHydrated] = useState(false);
@@ -24,6 +25,7 @@ export function App() {
     <>
       <Canvas board={board} />
       <ChatView board={board} />
+      <NoteLayer board={board} />
     </>
   );
 }

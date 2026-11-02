@@ -9,6 +9,7 @@ import { stopTurn, submitTurn } from "@/lib/ask";
 import { chainThrough, childrenOf, pathTo, shortLabel } from "@/lib/tree";
 import { threadColors } from "@/lib/colors";
 import { Markdown, Thinking } from "./Markdown";
+import { NoteButton, NoteTab } from "./Notes";
 
 const NEAR_BOTTOM = 240;
 
@@ -40,6 +41,12 @@ function Message({ board, turn, nextId, colors }: { board: Board; turn: Turn; ne
           <button className="m-stop" onClick={() => stopTurn(turn.id)}>
             Stop
           </button>
+        </div>
+      )}
+      {turn.status !== "streaming" && (
+        <div className="m-notes">
+          <NoteButton className="m-stop" turnId={turn.id} />
+          <NoteTab turnId={turn.id} count={board.annotations.filter((a) => a.turnId === turn.id && a.text.trim()).length} />
         </div>
       )}
       {label && (

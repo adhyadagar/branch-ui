@@ -7,6 +7,7 @@ import { stopTurn, submitTurn } from "@/lib/ask";
 import { askIdea, beginAsk, deleteTurn, editTurn, openChat, resetCardSize, toggleCollapsed, toggleExpanded } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { Markdown, Thinking } from "./Markdown";
+import { NoteButton, NoteTab } from "./Notes";
 import { MoreIcon, OpenIcon } from "./icons";
 
 const KIND_LABEL = { root: "Topic", branch: "Branch", followup: "Follow-up" };
@@ -22,6 +23,9 @@ type Props = {
   /** Questions of existing children, one per line, to mark explored ideas. */
   childQuestions: string;
   hiddenCount: number;
+  noteCount: number;
+  /** Has any highlight or note on it. */
+  annotated: boolean;
   collapsed: boolean;
   expanded: boolean;
   width: number;
@@ -76,7 +80,8 @@ export const Card = memo(function Card(p: Props) {
             {p.childCount > 0 && (
               <button onClick={() => toggleCollapsed(turn.id)}>{p.collapsed ? "Show what branches off" : "Hide what branches off"}</button>
             )}
-            {p.childCount === 0 && !streaming && <button onClick={() => editTurn(turn.id)}>Edit question</button>}
+            {/* Editing replaces the card, which would quietly throw away anything written on it. */}
+            {p.childCount === 0 && !p.annotated && !streaming && <button onClick={() => editTurn(turn.id)}>Edit question</button>}
             {sized && <button onClick={() => resetCardSize(turn.id)}>Reset card size</button>}
             {confirming ? (
               <button className="danger" onClick={() => deleteTurn(turn.id)}>
@@ -129,6 +134,7 @@ export const Card = memo(function Card(p: Props) {
             <button onClick={() => beginAsk(turn.id, "branch")} title="Open a side question">
               → Branch
             </button>
+            <NoteButton turnId={turn.id} />
             {turn.status === "error" && <button onClick={() => submitTurn(boardId, turn.id)}>Retry</button>}
             {p.collapsed ? (
               <button className="right" onClick={() => toggleCollapsed(turn.id)}>
@@ -145,6 +151,8 @@ export const Card = memo(function Card(p: Props) {
           </>
         )}
       </div>
+
+      <NoteTab turnId={turn.id} count={p.noteCount} />
 
       <div className="far-title">
         <span>{turn.question}</span>

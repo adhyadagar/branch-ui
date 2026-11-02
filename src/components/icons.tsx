@@ -66,6 +66,23 @@ export function NoteIcon() {
   );
 }
 
+export function NotesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <rect x="2.5" y="3" width="13" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" d="M5.5 7h7M5.5 10.5h4.5" />
+    </svg>
+  );
+}
+
+export function ChevronIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M2 3.5l3 3 3-3" />
+    </svg>
+  );
+}
+
 export function SearchIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">

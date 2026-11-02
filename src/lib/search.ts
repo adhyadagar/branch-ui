@@ -1,4 +1,4 @@
-import type { Turn } from "./types";
+import type { Annotation, Turn } from "./types";
 import type { Thread } from "./tree";
 import { parseAnswer } from "./answer";
 import { getCamera } from "./view";
@@ -37,21 +37,32 @@ function excerptAround(text: string, at: number): string {
   return (from > 0 ? "…" : "") + text.slice(from, from + EXCERPT);
 }
 
+/** A noted passage with the words around it, since a few highlighted words alone are hard to place later. */
+export function passageInContext(answer: string, quote: string): { before: string; quote: string; after: string } | null {
+  const text = plainText(parseAnswer(answer).body);
+  const passage = plainText(quote);
+  const at = text.indexOf(passage);
+  if (at < 0) return null;
+  const from = at > BEFORE_MATCH ? text.lastIndexOf(" ", at - BEFORE_MATCH) + 1 : 0;
+  return { before: (from > 0 ? "…" : "") + text.slice(from, at), quote: passage, after: text.slice(at + passage.length, at + passage.length + EXCERPT) };
+}
+
 /** A card matches when every term appears somewhere in it, so word order and distance don't matter. */
-function hitIn(turn: Turn, terms: string[]): Hit | null {
+function hitIn(turn: Turn, terms: string[], notes: Annotation[]): Hit | null {
   // Ideas are searched without their "Branch ideas" heading, or every search for "branch" would match.
   const { body, ideas } = parseAnswer(turn.answer);
-  const answer = plainText([turn.quote, body, ...ideas].filter(Boolean).join("\n\n"));
+  const written = notes.filter((n) => n.turnId === turn.id).map((n) => n.text);
+  const answer = plainText([turn.quote, body, ...ideas, ...written].filter(Boolean).join("\n\n"));
   const text = `${turn.question}\n${answer}`.toLowerCase();
   if (!terms.every((t) => text.includes(t))) return null;
   const at = answer.search(termPattern(terms));
   return { turn, excerpt: at < 0 ? "" : excerptAround(answer, at) };
 }
 
-export function searchThreads(threads: Thread[], terms: string[]): ThreadHits[] {
+export function searchThreads(threads: Thread[], terms: string[], notes: Annotation[]): ThreadHits[] {
   const out: ThreadHits[] = [];
   for (const thread of threads) {
-    const hits = thread.cards.flatMap((turn) => hitIn(turn, terms) ?? []);
+    const hits = thread.cards.flatMap((turn) => hitIn(turn, terms, notes) ?? []);
     if (hits.length) out.push({ thread, hits });
   }
   return out;
@@ -81,8 +92,11 @@ export function markOnCard(id: string, terms: string[]) {
     }
   }
   CSS.highlights.set(HIGHLIGHT, new Highlight(...ranges));
-  if (ranges.length) {
-    const offset = (ranges[0].getBoundingClientRect().top - body.getBoundingClientRect().top) / getCamera().s;
-    body.scrollTop += offset - BEFORE_MATCH;
-  }
+  if (ranges.length) scrollCardTo(body, ranges[0]);
+}
+
+/** Scroll a card's own body to a passage. Screen distances are divided by the zoom to get the card's. */
+export function scrollCardTo(body: Element, range: Range) {
+  const offset = (range.getBoundingClientRect().top - body.getBoundingClientRect().top) / getCamera().s;
+  body.scrollTop += offset - BEFORE_MATCH;
 }

@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Board } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { addExampleBoard, addNote, closeThreads, deleteBoard, goToMainThread, hideToast, newBoard, openThreads, setActiveBoard, setLayoutMode, tidyUp } from "@/lib/actions";
+import { addNote, deleteBoard, goToMainThread, hideToast, newBoard, setActiveBoard, setLayoutMode, tidyUp, togglePanel } from "@/lib/actions";
 import { mutateActive } from "@/lib/store";
 import { threadCount } from "@/lib/tree";
 import { fit, getCamera, subscribeCamera, zoomFromCenter } from "@/lib/view";
-import { HandIcon, ListIcon, Logo, NoteIcon, PointerIcon, SparkleIcon } from "./icons";
+import { ChevronIcon, HandIcon, ListIcon, Logo, NoteIcon, NotesIcon, PointerIcon, SparkleIcon } from "./icons";
 
 function countLabel(n: number) {
   if (!n) return "Empty";
@@ -17,85 +17,76 @@ function countLabel(n: number) {
 export function BoardPill({ board }: { board: Board }) {
   const boards = useStore((s) => s.boards);
   const [open, setOpen] = useState(false);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const sorted = Object.values(boards).sort((a, b) => b.updatedAt - a.updatedAt);
-  const close = () => {
-    setOpen(false);
-    setConfirmId(null);
-  };
+  const pillRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    // Undo keeps the menu open, so you can see the board come back.
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Element;
+      if (!pillRef.current?.contains(target) && !target.closest(".toast")) setOpen(false);
+    };
+    // Captured, so closing the menu doesn't also deselect the card behind it.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpen(false);
+    };
+    addEventListener("pointerdown", onPointerDown);
+    addEventListener("keydown", onKeyDown, true);
+    return () => {
+      removeEventListener("pointerdown", onPointerDown);
+      removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [open]);
 
   return (
-    <div className="float board-pill">
+    <div className="float board-pill" ref={pillRef}>
       <Logo />
       <b>Branch</b>
       <input className="board-name" value={board.title} aria-label="Board name" onChange={(e) => mutateActive((b) => ({ ...b, title: e.target.value }))} />
-      <button className="ghost" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
-        Boards
-      </button>
+      <div className="boards-anchor">
+        <button className="ghost boards-btn" aria-expanded={open} onClick={() => setOpen(!open)}>
+          Boards
+          <ChevronIcon />
+        </button>
+        {open && (
+          <div className="board-menu">
+            <div className="board-list">
+              {sorted.map((b) => (
+                <div key={b.id} className={`board-row ${b.id === board.id ? "active" : ""}`}>
+                  <button
+                    className="board-open"
+                    title={b.title}
+                    onClick={() => {
+                      setActiveBoard(b.id);
+                      setOpen(false);
+                    }}
+                  >
+                    {b.title || "Untitled board"}
+                  </button>
+                  <span className="count">{countLabel(threadCount(b))}</span>
+                  <button className="board-del" title="Delete board" aria-label={`Delete ${b.title}`} onClick={() => deleteBoard(b.id)}>
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       <button
         className="ghost new-board"
         title="New board"
         aria-label="New board"
         onClick={() => {
           newBoard();
-          close();
+          setOpen(false);
         }}
       >
         +
       </button>
-      {open && (
-        <div className="board-menu">
-          <div className="board-list">
-            {sorted.map((b) => (
-              <div key={b.id} className={`board-row ${b.id === board.id ? "active" : ""}`}>
-                <button
-                  className="board-open"
-                  onClick={() => {
-                    setActiveBoard(b.id);
-                    close();
-                  }}
-                >
-                  {b.title || "Untitled board"}
-                </button>
-                <span className="count">{countLabel(threadCount(b))}</span>
-                {confirmId === b.id ? (
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      deleteBoard(b.id);
-                      setConfirmId(null);
-                    }}
-                  >
-                    Confirm
-                  </button>
-                ) : (
-                  <button className="board-del" aria-label={`Delete ${b.title}`} onClick={() => setConfirmId(b.id)}>
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="board-actions">
-            <button
-              onClick={() => {
-                newBoard();
-                close();
-              }}
-            >
-              + New board
-            </button>
-            <button
-              onClick={() => {
-                addExampleBoard();
-                close();
-              }}
-            >
-              Add example board
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -125,6 +116,7 @@ export function ViewPill({ board }: { board: Board }) {
 export function Rail() {
   const tool = useStore((s) => s.tool);
   const threadsOpen = useStore((s) => s.threadsOpen);
+  const panelTab = useStore((s) => s.panelTab);
   const button = (label: string, icon: ReactNode, pressed: boolean | undefined, onClick: () => void) => (
     <button title={label} aria-label={label} aria-pressed={pressed} onClick={onClick}>
       {icon}
@@ -134,8 +126,9 @@ export function Rail() {
     <div className="float rail" role="toolbar" aria-label="Tools">
       {button("Select and move (V)", <PointerIcon />, tool === "select", () => useStore.setState({ tool: "select" }))}
       {button("Pan the board (H)", <HandIcon />, tool === "hand", () => useStore.setState({ tool: "hand" }))}
-      {button("Add a sticky note (N)", <NoteIcon />, undefined, addNote)}
-      {button("Threads and search (⌘K)", <ListIcon />, threadsOpen, () => (threadsOpen ? closeThreads() : openThreads()))}
+      {button("Add a note to the board (N)", <NoteIcon />, undefined, addNote)}
+      {button("Threads and search (⌘K)", <ListIcon />, threadsOpen && panelTab === "threads", () => togglePanel("threads"))}
+      {button("Your highlights and notes", <NotesIcon />, threadsOpen && panelTab === "notes", () => togglePanel("notes"))}
     </div>
   );
 }
