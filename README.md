@@ -2,24 +2,52 @@
 
 A canvas for talking to AI the way you actually think: in branches, not one endless scroll.
 
-![A Branch board with a main thread on the left, two side branches on the right, and the prompt bar waiting where the next answer will appear](docs/screenshot.png)
+![A Branch board with a main thread of cards, side branches beside it, sticky notes on the left, a highlighted passage with a note on it, and the prompt bar waiting where the next answer will appear](docs/screenshot.png)
 
 Chat apps put every question in one line, so a side question buries whatever you were doing and you end up scrolling to find it again. Branch lays the conversation out on a board instead. Side questions open off to the side, and the main thread stays where you left it.
 
+## Why I built this
+
+My neurodivergent brain thinks differently. It thinks in questions. One question opens three more, and I follow them: I test a hypothetical, wander down a side path, ask what would happen if. That's how I learn. But I also need to find my way back to the thread I started on, and a normal chat window loses it.
+
+I also learn by connecting new ideas to my own life and stories. So when an adventure is over, I want to come back to what I found, with my own notes next to it, and revise from that.
+
+Branch is the tool I wanted for all of that: somewhere to wander as far as I like, always find my way back, and leave with notes I actually wrote. If your brain works like this too, I hope it helps.
+
+It's also a portfolio project of mine, and it's open source, so use it, change it, or take it apart.
+
+[Adhya Dagar](https://github.com/adhyadagar) · [LinkedIn](https://www.linkedin.com/in/adhya-dagar/)
+
 ## What it does
+
+**Wander**
 
 - **Every question is a card.** A card shows the question and the opening of the answer, which the model writes to carry the takeaway. **More** expands the rest in place.
 - **Follow up or branch.** A follow-up continues the thread. A branch opens a side question without disturbing it.
-- **Highlight any passage** in an answer to branch on just that passage.
+- **Branch on any passage.** Select some words in an answer to ask about just those words.
 - **Branch ideas.** The model suggests up to 3 directions after an answer, and one click explores any of them.
 - **The prompt bar goes where the answer will go.** Press Follow up or Branch and the bar moves into a dashed space below or beside the card, and the answer appears in that same spot. Reading a card never moves it.
 - **Scoped context.** A card only sends the model the cards on its own path. Tangents stay out of the main thread, and each card shows how many earlier cards it sees.
+
+**Find your way back**
+
+- **See every thread.** The threads panel lists every thread on a board, with branches under the thread they came from.
+- **Search a whole board.** Search questions, answers and your notes. A result takes you to its card with the match highlighted.
 - **Open any path as a chat.** The arrows beside a card's label turn that path into a normal linear conversation, with chips to jump to its other branches.
-- **Two layouts.** Switch between Threads (follow-ups go down, branches go right) and Mind map (a classic left-to-right tree). Each remembers where you put things.
-- **A real board.** Drag cards and whatever branches off them follows; hold Alt or Option to move just one card. Drag a corner to resize, add sticky notes, and turn a note into a new topic. **Tidy up** puts everything back in a clean layout, with an undo.
-- **Find any thread.** The threads panel lists every thread on the board. Search it to find a question or answer, and a result takes you to its card with the match highlighted.
 - **Readable from far away.** Zoomed out, cards switch to large titles.
-- **As many boards as you like.** Press **+** beside **Boards** to start a new one. They're saved in your browser.
+
+**Make it yours**
+
+- **Highlight anything.** One click, like highlighting a textbook.
+- **Write notes in your own words.** A note can stick to a passage or a card, or sit loose on the board. It's the same note wherever it lives.
+- **Come back and revise.** Every highlight and note on a board collects in one list, in the order of the board.
+
+**A real board**
+
+- **Two layouts.** Switch between Threads (follow-ups go down, branches go right) and Mind map (a classic left-to-right tree). Each remembers where you put things.
+- **Move things around.** Drag cards and whatever branches off them follows; hold Alt or Option to move just one card. Drag a corner to resize. **Tidy up** puts everything back in a clean layout, with an undo.
+- **As many boards as you like.** Press **+** beside **Boards** to start a new one. A board names itself after your first question, and deleting one gives you a moment to undo it.
+- **A guided first round.** The example board walks you through three things to try, then points you to a board of your own.
 
 ## How branching works
 
@@ -41,13 +69,13 @@ A thread only continues one way, so once a card has a follow-up, every other que
 
 ### Branch on a single passage
 
-Highlight any part of an answer and choose **Branch on this**.
+Select any part of an answer and choose **Branch on this**.
 
-<img src="docs/highlight.png" width="360" alt="A sentence highlighted inside an answer, with a Branch on this button above it">
+<img src="docs/highlight.png" width="360" alt="A sentence selected inside an answer, with a bar above it offering Branch on this, Highlight and Add note">
 
 The new branch keeps that passage attached, and you can type a question or pick a ready-made one.
 
-<img src="docs/highlight-ask.png" width="720" alt="The prompt bar in a space beside the card, showing the highlighted passage and three suggested questions: Explain this more simply, Give me a concrete example, and Why is this true?">
+<img src="docs/highlight-ask.png" width="720" alt="The prompt bar in a space beside the card, showing the selected passage and three suggested questions: Explain this more simply, Give me a concrete example, and Why is this true?">
 
 ### Each branch keeps its own context
 
@@ -63,6 +91,41 @@ The screenshots above use the Threads layout, where follow-ups go down and branc
 
 <img src="docs/mind-map.png" width="800" alt="The same conversation as a left-to-right tree: one topic card on the left, two cards branching from it in the middle, and three more on the right">
 
+## Highlights and notes
+
+Select some words in any answer, on a card or in the chat, and choose what to do with them.
+
+<img src="docs/select-menu.png" width="360" alt="A sentence selected in an answer, with a bar above it offering Branch on this, Highlight and Add note">
+
+- **Highlight** marks the words straight away, with nothing to fill in.
+- **Add note** opens a note beside the words, ready to type in. It saves as you type.
+
+<img src="docs/notes.png" width="360" alt="A highlighted sentence on a card, with a small dot at its start and a yellow note open beside it. The note shows the quoted sentence and the words: Same as a team that hits its target and misses the point. A small tab on the card's top edge shows the number 1">
+
+A note is one idea wherever it lives:
+
+- **Stuck to a passage:** a small dot marks the highlight. Click the dot or the highlight to read or edit the note, or add a note to a highlight you made earlier.
+- **Stuck to a card:** press **Note** on any card.
+- **Loose on the board:** press <kbd>N</kbd> for a note you can drag anywhere, and turn into a new topic with **Ask →**.
+
+A card with notes on it shows a small tab with how many there are, so you can see them at a glance and your cards stay readable.
+
+### Come back and revise
+
+The notes button on the left toolbar opens everything you've marked on the board, with the words around each highlight so you remember where it came from. Click one to go to it.
+
+<img src="docs/highlights-and-notes.png" width="560" alt="A panel listing highlights and notes grouped by thread, each highlighted passage shown with the words around it and the note below, then a section called On the board with three coloured notes">
+
+## Finding your way back
+
+The threads button on the left toolbar, or <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd>, lists every thread on the board. Click one to go to it and see its cards, or press the arrows to read it as a chat.
+
+<img src="docs/threads.png" width="800" alt="A panel listing three threads on the board, with the first open to show its follow-ups. On the board, that thread's first card is selected and lit up">
+
+Search covers questions, answers and notes. A result opens its card and highlights the match, even if it's far down a long answer.
+
+<img src="docs/search.png" width="800" alt="A search for the word validation in the panel, with one result. The matching card is open on the board with every use of the word highlighted">
+
 ## Quick start
 
 You need [Node.js](https://nodejs.org) 22 or later.
@@ -74,7 +137,9 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. You start on an example board with real answers already written, so you can explore it right away. Without an API key, new questions get placeholder answers.
+Open <http://localhost:3000>. You start on an example board with real answers already written, and a short guide walks you through three things to try. When you ask about a new topic, it starts a board of its own, so your work never begins inside the demo. Without an API key, new questions get placeholder answers.
+
+<img src="docs/guide.png" width="800" alt="The example board with a Try it card at the top right: step 1, Click a card, is ticked off, step 2, Branch on a passage, is open with instructions, and step 3, Open a path as a chat, is next">
 
 ## Use a real model
 
@@ -99,6 +164,7 @@ Branch is built to run on your own machine, for one person.
 
 - Your API key stays on the server and `.env.local` is ignored by git.
 - Boards are saved in your browser. What you ask is sent to the model provider you configured, along with the earlier cards on that branch.
+- Your highlights and notes stay in your browser and aren't sent to the model. A note on the board is only sent if you press **Ask →** on it.
 - `/api/chat` has no login, so **anyone who can reach it can spend your API credit**. `npm run dev` listens only on `localhost`, but `npm start` listens on all network interfaces. Put authentication in front of it before hosting it anywhere public.
 
 See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability.
@@ -111,10 +177,10 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + scroll, or pinch on a trackpad | Zoom |
 | Double-click a card | Open it as a chat |
 | <kbd>V</kbd> / <kbd>H</kbd> | Select tool / pan tool |
-| <kbd>N</kbd> | Add a sticky note |
-| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> | Search this board's threads |
-| <kbd>↑</kbd> / <kbd>↓</kbd>, then <kbd>Enter</kbd> | Move through the threads panel and open a row |
-| <kbd>Esc</kbd> | Cancel the question you were about to ask, leave the chat, or clear the search and close the threads panel |
+| <kbd>N</kbd> | Add a note to the board |
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> | Search this board |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, then <kbd>Enter</kbd> | Move through the panel's list and open a row |
+| <kbd>Esc</kbd> | Close a note or menu, cancel the question you were about to ask, leave the chat, or clear the search and close the panel |
 | <kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd> | Send / new line |
 
 ## Where things live
@@ -123,9 +189,10 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | --- | --- |
 | `src/lib/layout.ts` | Both layouts, and the curves between cards |
 | `src/lib/view.ts` | Camera and card positions, kept outside React so panning stays smooth |
-| `src/lib/actions.ts` | Everything the UI can do: asking, drag, tidy up, boards |
+| `src/lib/actions.ts` | Everything the UI can do: asking, drag, tidy up, boards, notes |
 | `src/lib/ask.ts` | Builds a card's context from its path and streams the answer into it |
 | `src/lib/answer.ts` | Splits model output into the opening a card shows, the full answer and branch ideas |
+| `src/lib/annotations.ts` | Finds noted passages in an answer and paints their highlights and dots |
 | `src/lib/search.ts` | Searches a board's threads and highlights matches on cards |
 | `src/lib/store.ts` | Boards and UI state, saved to localStorage, plus migrations for older boards |
 | `src/lib/sample.ts` | The example board |
@@ -134,7 +201,9 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | `src/components/Card.tsx` | A card |
 | `src/components/PromptBar.tsx` | The prompt bar and how it moves |
 | `src/components/ChatView.tsx` | A path as a linear conversation |
-| `src/components/ThreadsPanel.tsx` | The list of a board's threads and the search over them |
+| `src/components/ThreadsPanel.tsx` | The list of a board's threads, its highlights and notes, and the search over them |
+| `src/components/Notes.tsx` | Writing and reading the notes on a card or passage |
+| `src/components/Guide.tsx` | The guided first round on the example board |
 
 ## Contributing
 
