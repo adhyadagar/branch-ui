@@ -8,6 +8,8 @@ import { NOTE_SIZE, type Slot } from "./layout";
 import { afterLayout, fit, flyTo, focusBar, frameSlot, getCamera, glideNext } from "./view";
 import { NOTE_COLORS } from "./colors";
 import { submitTurn } from "./ask";
+import { parseAnswer } from "./answer";
+import { markOnCard } from "./search";
 import { makeSampleBoard } from "./sample";
 
 const get = () => useStore.getState();
@@ -39,7 +41,11 @@ function addBoard(board: Board) {
   set((s) => ({ ...FRESH_UI, boards: { ...s.boards, [board.id]: board }, activeBoardId: board.id }));
 }
 
-export const newBoard = () => addBoard(emptyBoard());
+export function newBoard() {
+  addBoard(emptyBoard());
+  focusBar();
+}
+
 export const addExampleBoard = () => addBoard(makeSampleBoard());
 
 export function setActiveBoard(id: string) {
@@ -275,6 +281,69 @@ export function closeChat() {
   const id = get().chatId;
   set({ chatId: null, quote: null });
   if (id) afterLayout(() => flyTo(id));
+}
+
+/* ---------- Threads panel ---------- */
+
+export function openThreads() {
+  if (get().chatId) closeChat();
+  set({ threadsOpen: true });
+  // On a phone, focusing would cover the list with the keyboard.
+  if (innerWidth > 760) afterLayout(() => document.getElementById("threadSearch")?.focus());
+}
+
+export function closeThreads() {
+  set({ threadsOpen: false });
+}
+
+/** Open whatever is hiding these cards, since a collapsed card's children aren't on the board. */
+function reveal(ids: string[]) {
+  const board = getActiveBoard();
+  if (!board || !ids.some((id) => board.collapsed[id])) return;
+  glideNext();
+  mutateActive((b) => {
+    const collapsed = { ...b.collapsed };
+    for (const id of ids) collapsed[id] = false;
+    return { ...b, collapsed };
+  });
+}
+
+export function goToThread(id: string) {
+  const board = getActiveBoard();
+  if (!board?.turns[id]) return;
+  const cards = threadFrom(board, id).map((t) => t.id);
+  reveal([...pathTo(board, id).map((t) => t.id), ...cards]);
+  select(id);
+  afterLayout(() => fit(cards));
+}
+
+export function goToCard(id: string) {
+  const board = getActiveBoard();
+  if (!board?.turns[id]) return;
+  reveal(pathTo(board, id).map((t) => t.id).slice(0, -1));
+  select(id);
+  afterLayout(() => flyTo(id));
+}
+
+/** The card opened to show the last search match, closed again when the next one is opened. */
+let openedForMatch: string | null = null;
+
+/** Go to a search result, opening the card if the match is further down its answer. */
+export function goToMatch(id: string, terms: string[], inAnswer: boolean) {
+  const turn = getActiveBoard()?.turns[id];
+  if (!turn) return;
+  goToCard(id);
+  const expanded = { ...get().expanded };
+  if (openedForMatch && openedForMatch !== id) expanded[openedForMatch] = false;
+  openedForMatch = null;
+  if (inAnswer && !expanded[id] && parseAnswer(turn.answer).hasMore) {
+    expanded[id] = true;
+    openedForMatch = id;
+  }
+  glideNext();
+  set({ expanded });
+  // A frame later, because on a phone the panel is closing and clears the marks as it goes.
+  afterLayout(() => requestAnimationFrame(() => markOnCard(id, terms)));
 }
 
 /* ---------- Board-wide ---------- */

@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type MouseEvent, type PointerEvent } from "react";
 import type { Board } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { addNote, ask, endAsk, moveCard, moveNote, openChat, closeChat, resizeItem, select, slotFor, STARTERS, clearQuote } from "@/lib/actions";
+import { addNote, ask, endAsk, moveCard, moveNote, openChat, openThreads, closeChat, resizeItem, select, slotFor, STARTERS, clearQuote } from "@/lib/actions";
 import { childrenOf, descendantIds, pathTo, visibleTurns } from "@/lib/tree";
 import { CARD_W, edgePath, layoutBoard, MIN_CARD, SLOT_ID, widthOf, type Positions, type Slot } from "@/lib/layout";
 import { threadColors } from "@/lib/colors";
@@ -12,7 +12,8 @@ import { Card } from "./Card";
 import { NoteCard } from "./NoteCard";
 import { PromptBar } from "./PromptBar";
 import { SelectionBranch } from "./SelectionBranch";
-import { BoardPill, Outline, Rail, Toast, ViewPill, ZoomPill } from "./Chrome";
+import { BoardPill, Rail, Toast, ViewPill, ZoomPill } from "./Chrome";
+import { ThreadsPanel } from "./ThreadsPanel";
 
 const GLIDE_MS = 420;
 const FAR_ZOOM = 0.5;
@@ -281,6 +282,11 @@ export function Canvas({ board }: { board: Board }) {
         else select(null);
         return;
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openThreads();
+        return;
+      }
       if (typing || e.metaKey || e.ctrlKey || s.chatId) return;
       const key = e.key.toLowerCase();
       if (key === "v") useStore.setState({ tool: "select" });
@@ -402,7 +408,7 @@ export function Canvas({ board }: { board: Board }) {
         <BoardPill board={board} />
         <ViewPill board={board} />
         <Rail />
-        <Outline board={board} colors={colors} />
+        <ThreadsPanel board={board} colors={colors} />
         <ZoomPill />
       </main>
       <PromptBar />

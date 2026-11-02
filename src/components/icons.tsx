@@ -66,6 +66,15 @@ export function NoteIcon() {
   );
 }
 
+export function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" d="M9.2 9.2l3.3 3.3" />
+    </svg>
+  );
+}
+
 export function ListIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">

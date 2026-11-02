@@ -45,6 +45,26 @@ export function threadFrom(board: Board, id: string): Turn[] {
   return out;
 }
 
+/** A thread starts at a topic or a branch and runs down its follow-ups. */
+export type Thread = { start: Turn; cards: Turn[]; depth: number };
+
+/** Every thread on the board, each one followed by the branches that leave it. */
+export function listThreads(board: Board): Thread[] {
+  const out: Thread[] = [];
+  const visit = (id: string, depth: number) => {
+    const cards = threadFrom(board, id);
+    if (!cards.length) return;
+    out.push({ start: cards[0], cards, depth });
+    for (const card of cards) for (const k of childrenOf(board, card.id)) if (k.kind !== "followup") visit(k.id, depth + 1);
+  };
+  board.rootIds.forEach((r) => visit(r, 0));
+  return out;
+}
+
+export function threadCount(board: Board): number {
+  return Object.values(board.turns).filter((t) => t.kind !== "followup").length;
+}
+
 /** What the conversation view shows: the path down to a card, then the rest of its thread. */
 export function chainThrough(board: Board, id: string): Turn[] {
   return [...pathTo(board, id), ...threadFrom(board, id).slice(1)];

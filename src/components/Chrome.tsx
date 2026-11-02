@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { Board, Turn } from "@/lib/types";
+import type { Board } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { addExampleBoard, addNote, deleteBoard, goToMainThread, hideToast, newBoard, select, setActiveBoard, setLayoutMode, tidyUp } from "@/lib/actions";
+import { addExampleBoard, addNote, closeThreads, deleteBoard, goToMainThread, hideToast, newBoard, openThreads, setActiveBoard, setLayoutMode, tidyUp } from "@/lib/actions";
 import { mutateActive } from "@/lib/store";
-import { childrenOf, followupOf, shortLabel } from "@/lib/tree";
-import { afterLayout, fit, flyTo, getCamera, subscribeCamera, zoomFromCenter } from "@/lib/view";
+import { threadCount } from "@/lib/tree";
+import { fit, getCamera, subscribeCamera, zoomFromCenter } from "@/lib/view";
 import { HandIcon, ListIcon, Logo, NoteIcon, PointerIcon, SparkleIcon } from "./icons";
+
+function countLabel(n: number) {
+  if (!n) return "Empty";
+  return n === 1 ? "1 thread" : `${n} threads`;
+}
 
 export function BoardPill({ board }: { board: Board }) {
   const boards = useStore((s) => s.boards);
@@ -27,6 +32,17 @@ export function BoardPill({ board }: { board: Board }) {
       <button className="ghost" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
         Boards
       </button>
+      <button
+        className="ghost new-board"
+        title="New board"
+        aria-label="New board"
+        onClick={() => {
+          newBoard();
+          close();
+        }}
+      >
+        +
+      </button>
       {open && (
         <div className="board-menu">
           <div className="board-list">
@@ -41,7 +57,7 @@ export function BoardPill({ board }: { board: Board }) {
                 >
                   {b.title || "Untitled board"}
                 </button>
-                <span className="count">{Object.keys(b.turns).length}</span>
+                <span className="count">{countLabel(threadCount(b))}</span>
                 {confirmId === b.id ? (
                   <button
                     className="danger"
@@ -108,7 +124,7 @@ export function ViewPill({ board }: { board: Board }) {
 
 export function Rail() {
   const tool = useStore((s) => s.tool);
-  const outlineOpen = useStore((s) => s.outlineOpen);
+  const threadsOpen = useStore((s) => s.threadsOpen);
   const button = (label: string, icon: ReactNode, pressed: boolean | undefined, onClick: () => void) => (
     <button title={label} aria-label={label} aria-pressed={pressed} onClick={onClick}>
       {icon}
@@ -119,49 +135,7 @@ export function Rail() {
       {button("Select and move (V)", <PointerIcon />, tool === "select", () => useStore.setState({ tool: "select" }))}
       {button("Pan the board (H)", <HandIcon />, tool === "hand", () => useStore.setState({ tool: "hand" }))}
       {button("Add a sticky note (N)", <NoteIcon />, undefined, addNote)}
-      {button("Show the outline", <ListIcon />, outlineOpen, () => useStore.setState({ outlineOpen: !outlineOpen }))}
-    </div>
-  );
-}
-
-export function Outline({ board, colors }: { board: Board; colors: Record<string, string> }) {
-  const open = useStore((s) => s.outlineOpen);
-  const selectedId = useStore((s) => s.selectedId);
-  if (!open) return null;
-
-  const rows: ReactNode[] = [];
-  const thread = (startId: string, depth: number) => {
-    let cur: Turn | undefined = board.turns[startId];
-    while (cur) {
-      const t: Turn = cur;
-      rows.push(
-        <button
-          key={t.id}
-          className={`o-row ${t.id === selectedId ? "active" : ""}`}
-          style={{ paddingLeft: 8 + depth * 14 }}
-          title={t.question}
-          onClick={() => {
-            select(t.id);
-            if (innerWidth <= 760) useStore.setState({ outlineOpen: false });
-            afterLayout(() => flyTo(t.id));
-          }}
-        >
-          <span className="o-sq" style={{ borderColor: colors[t.id], background: t.kind === "followup" ? "transparent" : colors[t.id] }} />
-          <span>{shortLabel(t.question)}</span>
-        </button>,
-      );
-      for (const k of childrenOf(board, t.id)) if (k.kind !== "followup") thread(k.id, depth + 1);
-      cur = followupOf(board, t.id);
-    }
-  };
-  board.rootIds.forEach((r) => thread(r, 0));
-
-  return (
-    <div className="float outline-panel">
-      <h2>Outline</h2>
-      <nav className="outline" aria-label="Every card on the board">
-        {rows.length ? rows : <p className="outline-empty">Cards you create will be listed here.</p>}
-      </nav>
+      {button("Threads and search (⌘K)", <ListIcon />, threadsOpen, () => (threadsOpen ? closeThreads() : openThreads()))}
     </div>
   );
 }

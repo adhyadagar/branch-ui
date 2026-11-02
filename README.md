@@ -17,8 +17,9 @@ Chat apps put every question in one line, so a side question buries whatever you
 - **Open any path as a chat.** The arrows beside a card's label turn that path into a normal linear conversation, with chips to jump to its other branches.
 - **Two layouts.** Switch between Threads (follow-ups go down, branches go right) and Mind map (a classic left-to-right tree). Each remembers where you put things.
 - **A real board.** Drag cards and whatever branches off them follows; hold Alt or Option to move just one card. Drag a corner to resize, add sticky notes, and turn a note into a new topic. **Tidy up** puts everything back in a clean layout, with an undo.
-- **Readable from far away.** Zoomed out, cards switch to large titles, and the outline lists every card.
-- **Yours.** Boards are saved in your browser, with as many as you like.
+- **Find any thread.** The threads panel lists every thread on the board. Search it to find a question or answer, and a result takes you to its card with the match highlighted.
+- **Readable from far away.** Zoomed out, cards switch to large titles.
+- **As many boards as you like.** Press **+** beside **Boards** to start a new one. They're saved in your browser.
 
 ## How branching works
 
@@ -111,7 +112,9 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | Double-click a card | Open it as a chat |
 | <kbd>V</kbd> / <kbd>H</kbd> | Select tool / pan tool |
 | <kbd>N</kbd> | Add a sticky note |
-| <kbd>Esc</kbd> | Cancel the question you were about to ask, or leave the chat |
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> | Search this board's threads |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, then <kbd>Enter</kbd> | Move through the threads panel and open a row |
+| <kbd>Esc</kbd> | Cancel the question you were about to ask, leave the chat, or clear the search and close the threads panel |
 | <kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd> | Send / new line |
 
 ## Where things live
@@ -123,6 +126,7 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | `src/lib/actions.ts` | Everything the UI can do: asking, drag, tidy up, boards |
 | `src/lib/ask.ts` | Builds a card's context from its path and streams the answer into it |
 | `src/lib/answer.ts` | Splits model output into the opening a card shows, the full answer and branch ideas |
+| `src/lib/search.ts` | Searches a board's threads and highlights matches on cards |
 | `src/lib/store.ts` | Boards and UI state, saved to localStorage, plus migrations for older boards |
 | `src/lib/sample.ts` | The example board |
 | `src/app/api/chat/route.ts` | Model call (AI SDK `streamText`) and demo mode |
@@ -130,6 +134,7 @@ See [SECURITY.md](SECURITY.md) for more, including how to report a vulnerability
 | `src/components/Card.tsx` | A card |
 | `src/components/PromptBar.tsx` | The prompt bar and how it moves |
 | `src/components/ChatView.tsx` | A path as a linear conversation |
+| `src/components/ThreadsPanel.tsx` | The list of a board's threads and the search over them |
 
 ## Contributing
 

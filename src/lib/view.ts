@@ -22,6 +22,8 @@ export const scene = {
   slotHeight: 110,
   /** Extra space to include when fitting the board, such as the on-board tips. */
   extraBounds: null as { minY: number; maxX: number } | null,
+  /** Where the threads panel ends, so the camera doesn't put a card behind it. */
+  panelRight: 0,
 };
 
 export const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -77,7 +79,7 @@ export function zoomFromCenter(factor: number) {
 /** The part of the screen not covered by floating controls. */
 function viewArea() {
   const phone = innerWidth <= 760;
-  const l = phone ? 12 : 72;
+  const l = phone ? 12 : Math.max(72, scene.panelRight);
   const t = phone ? 112 : 68;
   return { l, t, w: innerWidth - l - 16, h: innerHeight - t - 118 };
 }

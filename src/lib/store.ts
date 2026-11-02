@@ -29,7 +29,7 @@ export type State = Persisted & {
   expanded: Record<string, boolean>;
   menuId: string | null;
   tool: Tool;
-  outlineOpen: boolean;
+  threadsOpen: boolean;
   editNoteId: string | null;
   toast: Toast | null;
 };
@@ -105,7 +105,7 @@ export const useStore = create<State>()(
       expanded: {},
       menuId: null,
       tool: "select",
-      outlineOpen: false,
+      threadsOpen: false,
       editNoteId: null,
       toast: null,
     }),
