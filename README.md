@@ -14,9 +14,7 @@ I also learn by connecting new ideas to my own life and stories. So when an adve
 
 Branch is the tool I wanted for all of that: somewhere to wander as far as I like, always find my way back, and leave with notes I actually wrote. If your brain works like this too, I hope it helps.
 
-It's also a portfolio project of mine, and it's open source, so use it, change it, or take it apart.
-
-[Adhya Dagar](https://github.com/adhyadagar) · [LinkedIn](https://www.linkedin.com/in/adhya-dagar/)
+[Adhya Dagar](https://github.com/adhyadagar)
 
 ## What it does
 
