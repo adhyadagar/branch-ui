@@ -1,194 +1,127 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { nanoid } from "nanoid";
-import type { Board, Turn, TurnKind } from "./types";
-import { childrenOf, descendantIds, followupOf, shortLabel } from "./tree";
+import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
+import type { Board, Turn } from "./types";
 
-type State = {
+export type Tool = "select" | "hand";
+export type AskMode = "follow" | "branch";
+export type Toast = { text: string; undo?: () => void };
+
+type Persisted = {
   boards: Record<string, Board>;
   activeBoardId: string | null;
-
-  // UI state, not persisted.
-  heights: Record<string, number>;
-  selectedId: string | null;
-  /** Bumped to ask the canvas to fly the camera to a card. */
-  focus: { id: string; nonce: number } | null;
-
-  newBoard: () => string;
-  deleteBoard: (id: string) => void;
-  setActiveBoard: (id: string) => void;
-  renameBoard: (id: string, title: string) => void;
-
-  addDraft: (parentId: string, kind: Exclude<TurnKind, "root">, quote?: string) => string;
-  updateTurn: (boardId: string, id: string, patch: Partial<Turn>) => void;
-  /** Removes a turn and everything under it. The root is reset instead. */
-  removeTurn: (id: string) => void;
-
-  setHeight: (id: string, h: number) => void;
-  moveBy: (id: string, dx: number, dy: number) => void;
-  toggleCollapsed: (id: string) => void;
-  tidy: () => void;
-  select: (id: string | null) => void;
-  focusOn: (id: string) => void;
+  tipsHidden: boolean;
 };
 
-function makeTurn(parentId: string | null, kind: TurnKind, quote?: string): Turn {
-  return {
-    id: nanoid(10),
-    parentId,
-    kind,
-    quote,
-    question: "",
-    answer: "",
-    status: "draft",
-    createdAt: Date.now(),
-  };
-}
+export type State = Persisted & {
+  selectedId: string | null;
+  /** The prompt bar has moved to the slot where the next answer will land. */
+  asking: boolean;
+  askMode: AskMode;
+  /** A highlighted passage the next question is about. */
+  quote: { turnId: string; text: string } | null;
+  /** The card whose path is open as a conversation. */
+  chatId: string | null;
+  barText: string;
+  /** Bumped when a question is sent from the slot, so the bar fades back in at home. */
+  barFade: number;
+  expanded: Record<string, boolean>;
+  menuId: string | null;
+  tool: Tool;
+  outlineOpen: boolean;
+  editNoteId: string | null;
+  toast: Toast | null;
+};
 
-function makeBoard(): Board {
-  const root = makeTurn(null, "root");
-  const now = Date.now();
+let pending: (() => void) | null = null;
+let timer: ReturnType<typeof setTimeout> | undefined;
+const flushWrites = () => {
+  clearTimeout(timer);
+  pending?.();
+  pending = null;
+};
+
+/** Writing every drag step and streamed token to localStorage would make the board stutter. */
+const debouncedStorage: PersistStorage<Persisted> = {
+  getItem(name) {
+    try {
+      const raw = localStorage.getItem(name);
+      return raw ? (JSON.parse(raw) as StorageValue<Persisted>) : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem(name, value) {
+    pending = () => {
+      try {
+        localStorage.setItem(name, JSON.stringify(value));
+      } catch (err) {
+        console.error("[branch] could not save boards", err);
+      }
+    };
+    clearTimeout(timer);
+    timer = setTimeout(flushWrites, 400);
+  },
+  removeItem(name) {
+    localStorage.removeItem(name);
+  },
+};
+if (typeof window !== "undefined") addEventListener("pagehide", flushWrites);
+
+/** v1 boards had one root, draft cards and a single set of offsets. */
+function migrateBoardV1(old: Record<string, unknown>): Board {
+  const turns = { ...(old.turns as Record<string, Turn>) };
+  for (const id in turns) if ((turns[id].status as string) === "draft") delete turns[id];
+  const rootId = old.rootId as string;
   return {
-    id: nanoid(10),
-    title: "Untitled board",
-    rootId: root.id,
-    turns: { [root.id]: root },
-    offsets: {},
-    collapsed: {},
-    createdAt: now,
-    updatedAt: now,
+    id: old.id as string,
+    title: old.title as string,
+    rootIds: turns[rootId] ? [rootId] : [],
+    turns,
+    notes: [],
+    mode: "threads",
+    offsets: { threads: (old.offsets as Board["offsets"]["threads"]) ?? {}, mind: {} },
+    sizes: {},
+    collapsed: (old.collapsed as Board["collapsed"]) ?? {},
+    createdAt: old.createdAt as number,
+    updatedAt: old.updatedAt as number,
   };
 }
 
 export const useStore = create<State>()(
   persist(
-    (set, get) => {
-      const mutateBoard = (boardId: string, fn: (b: Board) => Board) =>
-        set((s) => {
-          const b = s.boards[boardId];
-          if (!b) return s;
-          return { boards: { ...s.boards, [boardId]: { ...fn(b), updatedAt: Date.now() } } };
-        });
-      const mutateActive = (fn: (b: Board) => Board) => {
-        const id = get().activeBoardId;
-        if (id) mutateBoard(id, fn);
-      };
-
-      return {
-        boards: {},
-        activeBoardId: null,
-        heights: {},
-        selectedId: null,
-        focus: null,
-
-        newBoard: () => {
-          const b = makeBoard();
-          set((s) => ({ boards: { ...s.boards, [b.id]: b }, activeBoardId: b.id, selectedId: null }));
-          return b.id;
-        },
-
-        deleteBoard: (id) =>
-          set((s) => {
-            const boards = { ...s.boards };
-            delete boards[id];
-            const remaining = Object.values(boards).sort((a, b) => b.updatedAt - a.updatedAt);
-            if (remaining.length === 0) {
-              const b = makeBoard();
-              return { boards: { [b.id]: b }, activeBoardId: b.id, selectedId: null };
-            }
-            return {
-              boards,
-              activeBoardId: s.activeBoardId === id ? remaining[0].id : s.activeBoardId,
-              selectedId: null,
-            };
-          }),
-
-        setActiveBoard: (id) => set({ activeBoardId: id, selectedId: null }),
-
-        renameBoard: (id, title) => mutateBoard(id, (b) => ({ ...b, title })),
-
-        addDraft: (parentId, kind, quote) => {
-          const boardId = get().activeBoardId!;
-          const board = get().boards[boardId];
-          // A thread has one continuation; asking a second follow-up means a new branch.
-          const effectiveKind = kind === "followup" && followupOf(board, parentId) ? "branch" : kind;
-
-          // Re-use an untouched draft in the same spot rather than stacking empties.
-          const existing = childrenOf(board, parentId).find(
-            (t) => t.status === "draft" && !t.question && t.kind === effectiveKind && t.quote === quote,
-          );
-          if (existing) {
-            set({ selectedId: existing.id, focus: { id: existing.id, nonce: Date.now() } });
-            return existing.id;
-          }
-
-          const turn = makeTurn(parentId, effectiveKind, quote);
-          mutateBoard(boardId, (b) => ({
-            ...b,
-            turns: { ...b.turns, [turn.id]: turn },
-            // Reveal the new card if its parent was collapsed.
-            collapsed: { ...b.collapsed, [parentId]: false },
-          }));
-          set({ selectedId: turn.id, focus: { id: turn.id, nonce: Date.now() } });
-          return turn.id;
-        },
-
-        updateTurn: (boardId, id, patch) =>
-          mutateBoard(boardId, (b) => {
-            const prev = b.turns[id];
-            if (!prev) return b;
-            const next = { ...prev, ...patch };
-            const title =
-              id === b.rootId && b.title === "Untitled board" && next.question
-                ? shortLabel(next, 48)
-                : b.title;
-            return { ...b, title, turns: { ...b.turns, [id]: next } };
-          }),
-
-        removeTurn: (id) =>
-          mutateActive((b) => {
-            const turns = { ...b.turns };
-            const offsets = { ...b.offsets };
-            const collapsed = { ...b.collapsed };
-            const gone = id === b.rootId ? descendantIds(b, id) : [id, ...descendantIds(b, id)];
-            for (const g of gone) {
-              delete turns[g];
-              delete offsets[g];
-              delete collapsed[g];
-            }
-            if (id === b.rootId) {
-              turns[id] = { ...makeTurn(null, "root"), id };
-              return { ...b, title: "Untitled board", turns, offsets, collapsed };
-            }
-            return { ...b, turns, offsets, collapsed };
-          }),
-
-        setHeight: (id, h) =>
-          set((s) => (s.heights[id] === h ? s : { heights: { ...s.heights, [id]: h } })),
-
-        moveBy: (id, dx, dy) =>
-          mutateActive((b) => {
-            const o = b.offsets[id] ?? { x: 0, y: 0 };
-            return { ...b, offsets: { ...b.offsets, [id]: { x: o.x + dx, y: o.y + dy } } };
-          }),
-
-        toggleCollapsed: (id) =>
-          mutateActive((b) => ({ ...b, collapsed: { ...b.collapsed, [id]: !b.collapsed[id] } })),
-
-        tidy: () => mutateActive((b) => ({ ...b, offsets: {} })),
-
-        select: (id) => set({ selectedId: id }),
-
-        focusOn: (id) => set({ selectedId: id, focus: { id, nonce: Date.now() } }),
-      };
-    },
+    (): State => ({
+      boards: {},
+      activeBoardId: null,
+      tipsHidden: false,
+      selectedId: null,
+      asking: false,
+      askMode: "follow",
+      quote: null,
+      chatId: null,
+      barText: "",
+      barFade: 0,
+      expanded: {},
+      menuId: null,
+      tool: "select",
+      outlineOpen: false,
+      editNoteId: null,
+      toast: null,
+    }),
     {
       name: "branch-ui",
-      version: 1,
-      partialize: (s) => ({ boards: s.boards, activeBoardId: s.activeBoardId }),
+      version: 2,
+      storage: debouncedStorage,
+      partialize: (s): Persisted => ({ boards: s.boards, activeBoardId: s.activeBoardId, tipsHidden: s.tipsHidden }),
       skipHydration: true,
+      migrate: (persisted, version) => {
+        const p = persisted as Persisted;
+        if (version >= 2) return p;
+        const boards: Persisted["boards"] = {};
+        for (const [id, b] of Object.entries(p.boards ?? {})) boards[id] = migrateBoardV1(b as unknown as Record<string, unknown>);
+        return { boards, activeBoardId: p.activeBoardId ?? null, tipsHidden: false };
+      },
       onRehydrateStorage: () => (state) => {
         // Streams don't survive a reload; settle anything that was mid-answer.
         if (!state) return;
@@ -205,6 +138,28 @@ export const useStore = create<State>()(
   ),
 );
 
+export const getActiveBoard = (): Board | null => {
+  const s = useStore.getState();
+  return s.activeBoardId ? (s.boards[s.activeBoardId] ?? null) : null;
+};
+
 export function useActiveBoard(): Board | null {
   return useStore((s) => (s.activeBoardId ? (s.boards[s.activeBoardId] ?? null) : null));
+}
+
+export function mutateBoard(boardId: string, fn: (b: Board) => Board) {
+  useStore.setState((s) => {
+    const b = s.boards[boardId];
+    if (!b) return s;
+    return { boards: { ...s.boards, [boardId]: { ...fn(b), updatedAt: Date.now() } } };
+  });
+}
+
+export function mutateActive(fn: (b: Board) => Board) {
+  const id = useStore.getState().activeBoardId;
+  if (id) mutateBoard(id, fn);
+}
+
+export function updateTurn(boardId: string, id: string, patch: Partial<Turn>) {
+  mutateBoard(boardId, (b) => (b.turns[id] ? { ...b, turns: { ...b.turns, [id]: { ...b.turns[id], ...patch } } } : b));
 }

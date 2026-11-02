@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useStore } from "@/lib/store";
+import { branchOnPassage } from "@/lib/actions";
 
 type Pending = { turnId: string; text: string; x: number; y: number };
 
 /** Highlight any passage of an answer to open a branch about just that passage. */
 export function SelectionBranch() {
   const [pending, setPending] = useState<Pending | null>(null);
-  const addDraft = useStore((s) => s.addDraft);
 
   useEffect(() => {
     const onUp = () => {
@@ -41,12 +40,12 @@ export function SelectionBranch() {
 
   return createPortal(
     <button
-      className="selection-branch"
+      className="sel-btn"
       style={{ left: pending.x, top: pending.y }}
       onMouseDown={(e) => e.preventDefault()}
       onMouseUp={(e) => e.stopPropagation()}
       onClick={() => {
-        addDraft(pending.turnId, "branch", pending.text.slice(0, 1200));
+        branchOnPassage(pending.turnId, pending.text.slice(0, 1200));
         window.getSelection()?.removeAllRanges();
         setPending(null);
       }}

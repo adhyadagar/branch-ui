@@ -5,8 +5,9 @@ import { ERROR_SENTINEL } from "@/lib/protocol";
 const INSTRUCTIONS = `You are a thinking partner inside a branching canvas, not a linear chat.
 The user explores topics as a tree: each answer appears on its own card, follow-ups continue a thread downward, and side questions open new branches. You only see the path from the root to the current card.
 
-- Answer the question on this card directly and stay on its scope. Don't recap earlier cards.
-- Cards are narrow (~440px). Prefer short paragraphs, tight lists and small examples over long essays. Use ### headings at most.
+- Begin every answer with a one or two sentence summary wrapped in <summary></summary> tags, under 170 characters and in plain text. The card on the board shows only this; the rest appears when the user expands the card or opens it as a chat. Make it carry the actual answer, not a description of it.
+- Then answer the question on this card directly and stay on its scope. Don't recap earlier cards.
+- Prefer short paragraphs, tight lists and small examples over long essays. Use ### headings at most.
 - When a question is a branch, treat it as a focused tangent: go deep on that one idea.
 - If the topic naturally opens further directions, end with up to 3 short follow-up questions worth branching into, as a list under "**Branch ideas**".`;
 
@@ -81,13 +82,16 @@ export async function POST(req: Request) {
 function demoResponse(messages: ModelMessage[]) {
   const last = messages[messages.length - 1];
   const q = typeof last?.content === "string" ? last.content : "";
-  const text = `**Demo mode:** no model is configured, so this is a placeholder answer.
+  const earlier = messages.filter((m) => m.role === "user").length - 1;
+  const text = `<summary>Demo mode placeholder. A real model would see ${earlier === 1 ? "1 earlier card" : `${earlier} earlier cards`} here. Add an API key to get real answers.</summary>
+
+**Demo mode:** no model is configured, so this is a placeholder answer.
 
 You asked:
 
 > ${q.split("\n").filter(Boolean).slice(-1)[0] ?? ""}
 
-This card got **${messages.filter((m) => m.role === "user").length - 1} earlier turn(s)** as context: only the path from the root to here, not sibling branches.
+This card got **${earlier} earlier turn(s)** as context: only the path from the root to here, not sibling branches.
 
 To get real answers, add one of these to \`.env.local\` and restart \`npm run dev\`:
 

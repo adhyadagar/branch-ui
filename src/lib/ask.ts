@@ -2,7 +2,7 @@
 
 import type { Turn } from "./types";
 import { pathTo } from "./tree";
-import { useStore } from "./store";
+import { useStore, updateTurn } from "./store";
 import { ERROR_SENTINEL } from "./protocol";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -36,8 +36,7 @@ export function stopTurn(id: string) {
 }
 
 export async function submitTurn(boardId: string, id: string) {
-  const { boards, updateTurn } = useStore.getState();
-  const board = boards[boardId];
+  const board = useStore.getState().boards[boardId];
   const turn = board?.turns[id];
   if (!turn || !turn.question.trim() || controllers.has(id)) return;
 
@@ -51,7 +50,7 @@ export async function submitTurn(boardId: string, id: string) {
   let answer = "";
   let flushed = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
-  // Batch token updates so persisting to localStorage doesn't run per token.
+  // Batch token updates so re-rendering doesn't run per token.
   const flush = () => {
     timer = null;
     if (answer.length !== flushed) {

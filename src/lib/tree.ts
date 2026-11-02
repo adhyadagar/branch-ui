@@ -34,10 +34,10 @@ export function descendantIds(board: Board, id: string): string[] {
   return out;
 }
 
-/** The root's thread: root plus its chain of follow-ups. */
-export function mainThread(board: Board): Turn[] {
+/** A turn and its chain of follow-ups. */
+export function threadFrom(board: Board, id: string): Turn[] {
   const out: Turn[] = [];
-  let cur: Turn | undefined = board.turns[board.rootId];
+  let cur: Turn | undefined = board.turns[id];
   while (cur) {
     out.push(cur);
     cur = followupOf(board, cur.id);
@@ -45,9 +45,25 @@ export function mainThread(board: Board): Turn[] {
   return out;
 }
 
-export function shortLabel(turn: Turn, max = 60): string {
-  const text = turn.question.trim() || (turn.quote ? `“${turn.quote}”` : "");
-  if (!text) return turn.kind === "root" ? "New topic" : "Draft";
-  const oneLine = text.replace(/\s+/g, " ");
+/** What the conversation view shows: the path down to a card, then the rest of its thread. */
+export function chainThrough(board: Board, id: string): Turn[] {
+  return [...pathTo(board, id), ...threadFrom(board, id).slice(1)];
+}
+
+/** Cards currently on the board, skipping everything under a collapsed card. */
+export function visibleTurns(board: Board): Turn[] {
+  const out: Turn[] = [];
+  const walk = (id: string) => {
+    const t = board.turns[id];
+    if (!t) return;
+    out.push(t);
+    if (!board.collapsed[id]) childrenOf(board, id).forEach((c) => walk(c.id));
+  };
+  board.rootIds.forEach(walk);
+  return out;
+}
+
+export function shortLabel(text: string, max = 58): string {
+  const oneLine = text.replace(/\s+/g, " ").trim();
   return oneLine.length > max ? oneLine.slice(0, max - 1) + "…" : oneLine;
 }

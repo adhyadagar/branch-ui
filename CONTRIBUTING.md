@@ -33,7 +33,7 @@ Keep each pull request to one change, and match the style of the code around it.
 
 - **Next.js version.** This project uses Next.js 16, which differs from older versions in APIs and file conventions. The docs for the installed version are in `node_modules/next/dist/docs/`.
 - **`AGENTS.md`.** `next dev` generates this file for AI coding tools and adds it back if it's removed, so leave it committed.
-- **Saved boards.** Boards are stored in the browser's localStorage under the `branch-ui` key. If you change the shape of `Board` or `Turn`, make sure boards saved by earlier versions still load.
+- **Saved boards.** Boards are stored in the browser's localStorage under the `branch-ui` key. If you change the shape of `Board` or `Turn`, bump the version and add a migration in `src/lib/store.ts`, so boards saved by earlier versions still load.
 
 ## Reporting security issues
 

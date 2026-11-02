@@ -1,29 +1,49 @@
 export type TurnKind = "root" | "followup" | "branch";
 
-export type TurnStatus = "draft" | "streaming" | "done" | "error";
+export type TurnStatus = "streaming" | "done" | "error";
 
 /** One card on the canvas: a question and the model's answer to it. */
 export type Turn = {
   id: string;
   parentId: string | null;
-  /** followup = continues the parent's thread (below); branch = opens a new thread (right). */
+  /** followup = continues the parent's thread; branch = opens a new thread. */
   kind: TurnKind;
   question: string;
   /** Passage of the parent's answer this branch is about, if branched from a selection. */
   quote?: string;
+  /** Raw model output. See lib/answer.ts for how it splits into summary, body and ideas. */
   answer: string;
   status: TurnStatus;
   error?: string;
   createdAt: number;
 };
 
+export type Note = {
+  id: string;
+  text: string;
+  color: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+export type LayoutMode = "threads" | "mind";
+
+export type Point = { x: number; y: number };
+
 export type Board = {
   id: string;
   title: string;
-  rootId: string;
+  /** A board can hold several separate topics. */
+  rootIds: string[];
   turns: Record<string, Turn>;
-  /** Manual drag offsets; they apply to the node and everything under it. */
-  offsets: Record<string, { x: number; y: number }>;
+  notes: Note[];
+  mode: LayoutMode;
+  /** Manual drag offsets, per layout. They apply to a card and everything under it. */
+  offsets: Record<LayoutMode, Record<string, Point>>;
+  /** Cards the user has resized. */
+  sizes: Record<string, { w: number; h: number }>;
   collapsed: Record<string, boolean>;
   createdAt: number;
   updatedAt: number;
