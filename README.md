@@ -20,6 +20,48 @@ Chat apps put every question in one line, so a side question buries whatever you
 - **Readable from far away.** Zoomed out, cards switch to large titles, and the outline lists every card.
 - **Yours.** Boards are saved in your browser, with as many as you like.
 
+## How branching works
+
+Every card gives you two ways to ask the next question. Both open the prompt bar right where the answer will appear, so you can see where it's going before you ask. You can switch between them in the bar at any point before sending.
+
+### Follow up: keep going
+
+A follow-up continues the same thread, so the bar opens directly below the card.
+
+<img src="docs/follow-up.png" width="400" alt="A selected card with the prompt bar in a dashed space directly below it, connected by a dotted line, with Follow up chosen">
+
+### Branch: ask a side question
+
+A branch opens to the side, so the thread you were following stays exactly as it was. This is the same card and the same question as above, with Branch chosen instead.
+
+<img src="docs/branch.png" width="720" alt="The same card with the prompt bar in a dashed space to its right, connected by a dotted line, with Branch chosen">
+
+A thread only continues one way, so once a card has a follow-up, every other question from it becomes a branch.
+
+### Branch on a single passage
+
+Highlight any part of an answer and choose **Branch on this**.
+
+<img src="docs/highlight.png" width="360" alt="A sentence highlighted inside an answer, with a Branch on this button above it">
+
+The new branch keeps that passage attached, and you can type a question or pick a ready-made one.
+
+<img src="docs/highlight-ask.png" width="720" alt="The prompt bar in a space beside the card, showing the highlighted passage and three suggested questions: Explain this more simply, Give me a concrete example, and Why is this true?">
+
+### Each branch keeps its own context
+
+Click a card to see exactly what the model gets. Its path lights up and everything else fades.
+
+<img src="docs/scoped-context.png" width="720" alt="A board with one selected branch card. A line runs back through the two cards above it, which stay bright, while the cards on other paths are faded">
+
+Here, the selected card sends the model its own question plus the 2 cards on its path, which is why its label says "sees 2". The faded cards aren't sent, so a tangent never leaks into another branch or the main thread.
+
+### Switch to a mind map
+
+The screenshots above use the Threads layout, where follow-ups go down and branches go right. **Mind map** shows the same conversation as a left-to-right tree, with every card beside the one it came from. It's a good way to see the whole shape of a topic. Each layout remembers where you've moved cards, so you can switch back and forth freely.
+
+<img src="docs/mind-map.png" width="800" alt="The same conversation as a left-to-right tree: one topic card on the left, two cards branching from it in the middle, and three more on the right">
+
 ## Quick start
 
 You need [Node.js](https://nodejs.org) 22 or later.
